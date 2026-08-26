@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S0MBR4 // ACCESS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background-color: #06030d;
+            color: #e9d5ff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ambient purple glows */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 18% 8%, rgba(147, 51, 234, 0.28), transparent 52%),
+                radial-gradient(ellipse at 85% 90%, rgba(217, 70, 239, 0.18), transparent 55%),
+                radial-gradient(ellipse at 55% 45%, rgba(76, 29, 149, 0.22), transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+            animation: bgBreath 7s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgBreath {
+            0%   { opacity: 0.85; }
+            100% { opacity: 1; }
+        }
+
+        .aurora {
+            position: fixed;
+            inset: -20%;
+            pointer-events: none;
+            z-index: 1;
+            background: conic-gradient(from 0deg,
+                transparent 0deg, rgba(147, 51, 234, 0.10) 40deg, transparent 80deg,
+                rgba(217, 70, 239, 0.12) 120deg, transparent 170deg,
+                rgba(76, 29, 149, 0.14) 240deg, transparent 300deg);
+            filter: blur(30px);
+            animation: auroraSpin 24s linear infinite;
+        }
+
+        @keyframes auroraSpin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* CRT scanlines */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg, rgba(0, 0, 0, 0.22) 0px, rgba(0, 0, 0, 0.22) 1px,
+                transparent 1px, transparent 3px);
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        .vignette {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(2, 0, 8, 0.75) 100%);
+            pointer-events: none;
+            z-index: 31;
+        }
+
+        /* light horizontal sweep */
+        .sweep {
+            position: fixed;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(180deg, transparent, rgba(168, 85, 247, 0.09), transparent);
+            pointer-events: none;
+            z-index: 2;
+            animation: sweepMove 8s linear infinite;
+        }
+
+        @keyframes sweepMove {
+            0%   { top: -15%; }
+            100% { top: 115%; }
+        }
+
+        /* binary rain canvases on the sides */
+        .rain {
+            position: fixed;
+            top: 0;
+            height: 100vh;
+            width: 150px;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0.5;
+        }
+
+        #rainLeft { left: 0; }
+        #rainRight { right: 0; }
+
+        @media (max-width: 900px) {
+            .rain { width: 70px; opacity: 0.35; }
+        }
+
+        @media (max-width: 600px) {
+            .rain { display: none; }
+        }
+
+        /* floating code glyphs */
+        .float-char {
+            position: fixed;
+            bottom: -30px;
+            font-family: 'Press Start 2P', monospace;
+            color: rgba(168, 85, 247, 0.5);
+            text-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+            pointer-events: none;
+            z-index: 2;
+            animation: floatUp linear infinite;
+        }
+
+        @keyframes floatUp {
+            0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10%  { opacity: 0.8; }
+            90%  { opacity: 0.45; }
+            100% { transform: translateY(-112vh) rotate(12deg); opacity: 0; }
+        }
+
+        /* floating hexagons */
+        .hex {
+            position: fixed;
+            bottom: -90px;
+            clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.85), rgba(217, 70, 239, 0.55), rgba(76, 29, 149, 0.75));
+            background-size: 200% 200%;
+            animation: hexRise linear infinite, hexHue 6s ease-in-out infinite alternate;
+            filter: blur(0.4px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes hexHue {
+            0%   { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+
+        @keyframes hexRise {
+            from { transform: translateY(0) rotate(0deg); }
+            to   { transform: translateY(-130vh) rotate(360deg); }
+        }
+
+        /* ---------- PANEL ---------- */
+        .panel {
+            position: relative;
+            z-index: 5;
+            width: 100%;
+            max-width: 420px;
+            background: rgba(10, 4, 24, 0.72);
+            border: 1px solid rgba(168, 85, 247, 0.55);
+            border-radius: 10px;
+            padding: 40px 36px 36px;
+            text-align: center;
+            backdrop-filter: blur(2px);
+            animation: panelPulse 4.5s ease-in-out infinite;
+        }
+
+        @keyframes panelPulse {
+            0%, 100% { box-shadow: 0 0 24px rgba(124, 58, 237, 0.25), inset 0 0 40px rgba(76, 29, 149, 0.15); }
+            50%      { box-shadow: 0 0 46px rgba(168, 85, 247, 0.45), inset 0 0 64px rgba(124, 58, 237, 0.24); }
+        }
+
+        /* corner brackets */
+        .corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(217, 70, 239, 0.8);
+            filter: drop-shadow(0 0 6px rgba(217, 70, 239, 0.6));
+            animation: cornerPulse 3s ease-in-out infinite;
+        }
+
+        .corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+        .corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; animation-delay: 0.7s; }
+        .corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; animation-delay: 1.4s; }
+        .corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; animation-delay: 2.1s; }
+
+        @keyframes cornerPulse {
+            0%, 100% { opacity: 0.3; }
+            50%      { opacity: 1; }
+        }
+
+        /* entrance stagger */
+        .anim {
+            opacity: 0;
+            animation: riseIn 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+            animation-delay: var(--d, 0s);
+        }
+
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ---------- LOGO ---------- */
+        .logo-wrap {
+            position: relative;
+            width: 132px;
+            height: 132px;
+            margin: 0 auto 26px;
+        }
+
+        .logo {
+            position: absolute;
+            inset: 14px;
+            width: 104px;
+            height: 104px;
+            image-rendering: pixelated;
+            animation: logoFloat 4s ease-in-out infinite, logoGlow 2.6s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-14px); }
+        }
+
+        @keyframes logoGlow {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.55)) drop-shadow(0 0 18px rgba(168, 85, 247, 0.25)); }
+            50%      { filter: drop-shadow(0 0 14px rgba(217, 70, 239, 0.95)) drop-shadow(0 0 42px rgba(217, 70, 239, 0.55)); }
+        }
+
+        .logo.glitching {
+            animation: none;
+            transform: translateX(-2px) scale(1.03);
+            filter: drop-shadow(0 0 18px #ff2d55) saturate(3) hue-rotate(-20deg);
+        }
+
+        .logo-ring {
+            position: absolute;
+            inset: 0;
+            animation: ringSpin 9s linear infinite;
+        }
+
+        .logo-ring svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.8));
+        }
+
+        .logo-ring svg polygon {
+            stroke-dasharray: 1050;
+            stroke-dashoffset: 1050;
+            filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.9));
+            animation: ringDraw 3.4s ease-in-out infinite;
+        }
+
+        .logo-ring::after {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 1px dashed rgba(217, 70, 239, 0.5);
+            animation: ringSpin 5s linear infinite reverse;
+        }
+
+        @keyframes ringSpin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        @keyframes ringDraw {
+            0%, 100% { stroke-dashoffset: 1050; }
+            45%      { stroke-dashoffset: 0; }
+        }
+
+        .logo-scan {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #d946ef, transparent);
+            box-shadow: 0 0 12px rgba(217, 70, 239, 0.9);
+            animation: logoSweep 2.2s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes logoSweep {
+            0%, 100% { top: 6%; opacity: 0; }
+            12%      { opacity: 1; }
+            88%      { opacity: 1; }
+            50%      { top: 92%; }
+        }
+
+        /* ---------- TITLE ---------- */
+        .title {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 26px;
+            color: #c084fc;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 14px;
+            text-shadow: 0 0 12px rgba(192, 132, 252, 0.9), 0 0 42px rgba(168, 85, 247, 0.55);
+            animation: titleGlitch 5s steps(2) infinite, titleShift 7s linear infinite;
+        }
+
+        @keyframes titleGlitch {
+            0%, 92%, 100% { transform: translate(0); }
+            93% { transform: translate(-2px, 1px); }
+            95% { transform: translate(2px, -1px); }
+            97% { transform: translate(-1px, -2px); }
+        }
+
+        @keyframes titleShift {
+            0%, 84%, 100% {
+                text-shadow: 0 0 12px rgba(192, 132, 252, 0.9), 0 0 42px rgba(168, 85, 247, 0.55);
+                transform: translate(0);
+            }
+            86% {
+                text-shadow: -3px 0 #ff2d55, 3px 0 #00e5ff, 0 0 14px rgba(192, 132, 252, 0.9);
+                transform: skewX(-8deg);
+            }
+            88% {
+                text-shadow: 3px 0 #ff2d55, -3px 0 #00e5ff, 0 0 14px rgba(192, 132, 252, 0.9);
+                transform: skewX(6deg);
+            }
+            90% {
+                text-shadow: -2px 0 #ff2d55, 2px 0 #00e5ff, 0 0 14px rgba(192, 132, 252, 0.9);
+                transform: skewX(-3deg);
+            }
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #a78bfa;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            min-height: 20px;
+        }
+
+        /* ---------- FORM ---------- */
+        .field {
+            position: relative;
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .field input {
+            width: 100%;
+            height: 48px;
+            padding: 14px 16px 4px;
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            color: #e9d5ff;
+            caret-color: #d946ef;
+            background: rgba(2, 0, 8, 0.6);
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .field input:focus {
+            border-color: #d946ef;
+            box-shadow: 0 0 14px rgba(217, 70, 239, 0.45), inset 0 0 10px rgba(217, 70, 239, 0.08);
+        }
+
+        .field label {
+            position: absolute;
+            left: 16px;
+            top: 14px;
+            font-size: 16px;
+            color: #7c3aed;
+            letter-spacing: 1px;
+            pointer-events: none;
+            transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease;
+        }
+
+        .field input:focus + label,
+        .field input:not(:placeholder-shown) + label {
+            top: 4px;
+            font-size: 11px;
+            color: #d946ef;
+        }
+
+        .btn {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            margin-top: 10px;
+            padding: 13px 16px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: #06030d;
+            background: linear-gradient(90deg, #a855f7, #d946ef, #a855f7);
+            background-size: 200% 100%;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: filter 0.15s ease, transform 0.1s ease;
+            animation: btnGrad 3.2s linear infinite;
+        }
+
+        @keyframes btnGrad {
+            0%   { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -80%;
+            width: 55%;
+            height: 100%;
+            background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transform: skewX(-20deg);
+            animation: shimmer 2.8s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%        { left: -80%; }
+            55%, 100% { left: 140%; }
+        }
+
+        .btn:hover {
+            filter: brightness(1.2);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .access {
+            margin-top: 18px;
+            font-size: 14px;
+            color: #7c3aed;
+            letter-spacing: 1px;
+            min-height: 18px;
+        }
+
+        .access .caret {
+            display: inline-block;
+            animation: blink 1s steps(1) infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .access.denied {
+            color: #ff1a4d;
+            text-shadow: 0 0 10px rgba(255, 26, 77, 0.7);
+        }
+
+        .panel.shake {
+            animation: panelShake 0.45s ease-in-out, panelPulse 4.5s ease-in-out infinite;
+        }
+
+        @keyframes panelShake {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-10px, 2px); }
+            40% { transform: translate(10px, -2px); }
+            60% { transform: translate(-8px, 1px); }
+            80% { transform: translate(8px, -1px); }
+        }
+
+        .hint {
+            margin-top: 16px;
+            font-size: 13px;
+            color: rgba(167, 139, 250, 0.45);
+            letter-spacing: 1px;
+        }
+
+        /* ---------- JUMPSCARE ---------- */
+        .scare-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        body.scare .scare-overlay,
+        body.laugh .scare-overlay {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        body.scare .scare-overlay {
+            animation: scareStrobe 0.22s steps(2) 4;
+        }
+
+        @keyframes scareStrobe {
+            0%   { background: #000; }
+            50%  { background: #ff1a1a; }
+            100% { background: #ffffff; }
+        }
+
+        .scare-zoom {
+            animation: scareScale 0.85s cubic-bezier(0.2, 2.6, 0.4, 1) forwards;
+        }
+
+        @keyframes scareScale {
+            0%   { transform: scale(0.15); opacity: 0; }
+            12%  { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.35); opacity: 1; }
+        }
+
+        .scare-overlay img {
+            width: min(80vmin, 520px);
+            image-rendering: pixelated;
+            animation: scareShake 0.09s linear infinite;
+        }
+
+        @keyframes scareShake {
+            0%   { transform: translate(-8px, 5px) rotate(-3deg); }
+            25%  { transform: translate(8px, -5px) rotate(3deg); }
+            50%  { transform: translate(-6px, -6px) rotate(-2deg); }
+            75%  { transform: translate(6px, 6px) rotate(2deg); }
+            100% { transform: translate(0, 0) rotate(0); }
+        }
+
+        body.laugh .scare-zoom {
+            animation: none;
+            transform: scale(1.15);
+        }
+
+        body.laugh .scare-overlay img {
+            animation: laughBounce 0.26s ease-in-out infinite;
+        }
+
+        @keyframes laughBounce {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+            20%      { transform: translateY(-26px) rotate(-5deg) scale(1.04); }
+            40%      { transform: translateY(0) rotate(4deg) scale(0.98); }
+            60%      { transform: translateY(-14px) rotate(-3deg) scale(1.02); }
+            80%      { transform: translateY(0) rotate(0deg) scale(1); }
+        }
+
+        body.laugh .scare-overlay {
+            background: rgba(0, 0, 0, 0.92);
+        }
+
+        .laugh-text {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 510;
+            pointer-events: none;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 46px;
+            letter-spacing: 6px;
+            color: #ff1a4d;
+            text-shadow: 0 0 18px rgba(255, 26, 77, 0.95), 0 0 60px rgba(255, 26, 77, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.6);
+        }
+
+        body.laugh .laugh-text {
+            visibility: visible;
+            opacity: 1;
+            animation: laughPop 0.28s cubic-bezier(0.2, 2.4, 0.4, 1) forwards;
+        }
+
+        @keyframes laughPop {
+            0%   { transform: scale(0.4); opacity: 0; }
+            70%  { transform: scale(1.12); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="aurora"></div>
+    <div class="sweep"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <canvas class="rain" id="rainLeft"></canvas>
+    <canvas class="rain" id="rainRight"></canvas>
+
+    <div class="panel" id="panel">
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+
+        <div class="logo-wrap anim" style="--d:0.05s">
+            <div class="logo-ring">
+                <svg viewBox="0 0 100 100" fill="none" stroke="#a855f7" stroke-width="2">
+                    <polygon points="50,3 90,26 90,74 50,97 10,74 10,26"/>
+                </svg>
+            </div>
+            <img src="/images/skull.png" alt="S0MBR4" class="logo" id="logo">
+            <div class="logo-scan"></div>
+        </div>
+
+        <h1 class="title anim" style="--d:0.15s">S0MBR4</h1>
+        <p class="subtitle anim" id="subtitle" style="--d:0.25s"></p>
+
+        <form action="/sombra/login" method="POST" id="gateForm" autocomplete="off" class="anim" style="--d:0.35s">
+            <div class="field">
+                <input type="text" id="username" name="username" placeholder=" " required autocomplete="off">
+                <label for="username">USERNAME</label>
+            </div>
+            <div class="field">
+                <input type="password" id="password" name="password" placeholder=" " required autocomplete="off">
+                <label for="password">PASSWORD</label>
+            </div>
+            <button type="submit" class="btn">&gt;&gt; ENTER &lt;&lt;</button>
+        </form>
+
+        <p class="access anim" id="accessMsg" style="--d:0.5s">&gt; <span id="statusText">AWAITING CREDENTIALS</span><span class="caret">_</span></p>
+        <p class="hint anim" style="--d:0.6s">[ restricted sector · authorized personnel only ]</p>
+    </div>
+
+    <!-- jumpscare layer: uses the cleaned skull (no white glitch dots) -->
+    <div class="scare-overlay" id="scareOverlay">
+        <div class="scare-zoom">
+            <img src="/images/skull-clean.png" alt="">
+        </div>
+    </div>
+    <div class="laugh-text" id="laughText">HA. HA. HA!</div>
+
+    <script>
+        // ---------- Background ambience ----------
+        // floating hexagons (CSS ones + a few extra generated)
+        (function makeHexes() {
+            const hues = ['rgba(168,85,247,0.85)', 'rgba(217,70,239,0.55)', 'rgba(76,29,149,0.75)'];
+            for (let i = 0; i < 8; i++) {
+                const h = document.createElement('div');
+                h.className = 'hex';
+                const size = 26 + Math.random() * 70;
+                h.style.width = size + 'px';
+                h.style.height = size * 1.15 + 'px';
+                h.style.left = Math.random() * 100 + 'vw';
+                h.style.animationDuration = (11 + Math.random() * 12) + 's, 6s';
+                h.style.animationDelay = (-Math.random() * 14) + 's, 0s';
+                h.style.opacity = 0.35 + Math.random() * 0.45;
+                document.body.appendChild(h);
+            }
+        })();
+
+        // floating code glyphs
+        (function makeGlyphs() {
+            const glyphs = '01<>/\\{}[]#$%&*+=?;:';
+            for (let i = 0; i < 20; i++) {
+                const s = document.createElement('span');
+                s.className = 'float-char';
+                s.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+                s.style.left = (4 + Math.random() * 92) + 'vw';
+                s.style.animationDuration = (7 + Math.random() * 9) + 's';
+                s.style.animationDelay = (-Math.random() * 12) + 's';
+                s.style.fontSize = (9 + Math.random() * 8) + 'px';
+                s.style.opacity = 0.2 + Math.random() * 0.45;
+                document.body.appendChild(s);
+            }
+        })();
+
+        // binary rain on the side canvases (light, low opacity)
+        function startRain(canvas) {
+            const ctx = canvas.getContext('2d');
+            const chars = '01S0MBR4#$%&*+=<>/\\'.split('');
+            const fontSize = 14;
+            let cols, drops;
+
+            function size() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = window.innerHeight;
+                cols = Math.max(1, Math.floor(canvas.width / fontSize));
+                drops = [];
+                for (let i = 0; i < cols; i++) drops.push(Math.floor(Math.random() * -60));
+            }
+
+            size();
+            window.addEventListener('resize', size);
+
+            setInterval(function () {
+                ctx.fillStyle = 'rgba(6, 3, 13, 0.16)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = fontSize + 'px monospace';
+                for (let i = 0; i < cols; i++) {
+                    const ch = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillStyle = Math.random() > 0.97 ? '#d946ef' : 'rgba(168, 85, 247, 0.7)';
+                    ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }, 70);
+        }
+
+        startRain(document.getElementById('rainLeft'));
+        startRain(document.getElementById('rainRight'));
+
+        // skull: occasional glitch flicker
+        (function skullGlitch() {
+            const skull = document.getElementById('logo');
+            setInterval(function () {
+                if (Math.random() > 0.82) {
+                    skull.classList.add('glitching');
+                    setTimeout(function () { skull.classList.remove('glitching'); }, 130);
+                }
+            }, 950);
+        })();
+
+        // typewriter for the subtitle
+        (function typeSubtitle() {
+            const el = document.getElementById('subtitle');
+            const text = '// RESTRICTED AREA // AUTHENTICATION REQUIRED //';
+            let i = 0;
+            (function tick() {
+                el.textContent = text.slice(0, i) + (i < text.length ? '▮' : '');
+                i++;
+                if (i <= text.length) setTimeout(tick, 42);
+                else setTimeout(function () { el.textContent = text; }, 400);
+            })();
+        })();
+
+        // cycling status line (pauses during the jumpscare)
+        const statusTextEl = document.getElementById('statusText');
+        const statuses = [
+            'INITIALIZING SECURE CHANNEL',
+            'HANDSHAKE OK',
+            'DECRYPTING SECTOR MAP',
+            'AWAITING CREDENTIALS'
+        ];
+        let statusIdx = 0;
+        let scaring = false;
+
+        (function cycleStatus() {
+            if (!scaring) {
+                statusTextEl.textContent = statuses[statusIdx % statuses.length];
+                statusIdx++;
+            }
+            setTimeout(cycleStatus, 2300);
+        })();
+
+        // ---------- Web Audio: loud scream + creepy laugh ----------
+        let audioCtx = null;
+
+        function getCtx() {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        function makeDistortion(amount) {
+            const n = 256;
+            const curve = new Float32Array(n);
+            const deg = Math.PI / 180;
+            for (let i = 0; i < n; i++) {
+                const x = (i * 2) / n - 1;
+                curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+            }
+            return curve;
+        }
+
+        // loud distorted scream (rising saw + noise burst)
+        function playScream(ctx) {
+            const t = ctx.currentTime;
+            const dur = 0.75;
+
+            const osc = ctx.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(160, t);
+            osc.frequency.exponentialRampToValueAtTime(1500, t + dur);
+
+            const shaper = ctx.createWaveShaper();
+            shaper.curve = makeDistortion(90);
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 2600;
+
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.0001, t);
+            gain.gain.exponentialRampToValueAtTime(0.95, t + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+            osc.connect(shaper);
+            shaper.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur);
+
+            // noise layer for extra punch
+            const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+            const noise = ctx.createBufferSource();
+            noise.buffer = buf;
+            const ng = ctx.createGain();
+            ng.gain.setValueAtTime(0.55, t);
+            ng.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            noise.connect(ng);
+            ng.connect(ctx.destination);
+            noise.start(t);
+            noise.stop(t + dur);
+        }
+
+        // creepy descending laugh: repeated "HA" bursts
+        function playLaugh(ctx) {
+            const haCount = 5;
+            for (let i = 0; i < haCount; i++) {
+                const t0 = ctx.currentTime + i * 0.32;
+                const freq = 230 - i * 26;
+
+                const ha = ctx.createOscillator();
+                ha.type = 'square';
+                ha.frequency.setValueAtTime(freq, t0);
+                ha.frequency.linearRampToValueAtTime(freq * 0.78, t0 + 0.13);
+                const g = ctx.createGain();
+                g.gain.setValueAtTime(0.0001, t0);
+                g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+                ha.connect(g);
+                g.connect(ctx.destination);
+                ha.start(t0);
+                ha.stop(t0 + 0.18);
+
+                const sub = ctx.createOscillator();
+                sub.type = 'triangle';
+                sub.frequency.setValueAtTime(freq / 2, t0);
+                const sg = ctx.createGain();
+                sg.gain.setValueAtTime(0.0001, t0);
+                sg.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+                sg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+                sub.connect(sg);
+                sg.connect(ctx.destination);
+                sub.start(t0);
+                sub.stop(t0 + 0.18);
+            }
+        }
+
+        // ---------- Jumpscare sequence ----------
+        function triggerJumpscare() {
+            if (scaring) return;
+            scaring = true;
+
+            document.body.classList.add('scare');
+            const msg = document.getElementById('accessMsg');
+            statusTextEl.textContent = 'ACCESS DENIED';
+            msg.classList.add('denied');
+
+            const ctx = getCtx();
+            if (ctx) playScream(ctx);
+
+            // after the scream: the skull laughs
+            setTimeout(function () {
+                document.body.classList.remove('scare');
+                document.body.classList.add('laugh');
+                if (ctx) playLaugh(ctx);
+            }, 1100);
+
+            // reset everything
+            setTimeout(function () {
+                document.body.classList.remove('laugh');
+                document.getElementById('panel').classList.add('shake');
+                setTimeout(function () {
+                    document.getElementById('panel').classList.remove('shake');
+                }, 500);
+                scaring = false;
+            }, 3400);
+        }
+
+        // ---------- Gate ----------
+        const form = document.getElementById('gateForm');
+        const userInput = document.getElementById('username');
+        const passInput = document.getElementById('password');
+
+        form.addEventListener('submit', function (e) {
+            const u = userInput.value.trim();
+            const p = passInput.value;
+            if (u === 'sombr4' && p === 'sombr4') return; // let the server open the gate
+            e.preventDefault();
+            triggerJumpscare();
+        });
+
+        // direct POST bypass attempts come back as ?fail=1 → jumpscare on load
+        if (new URLSearchParams(location.search).get('fail') === '1') {
+            triggerJumpscare();
+        }
+    </script>
+</body>
+</html>

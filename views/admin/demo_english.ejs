@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google - Admin Demo Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0 16px;
+            border-bottom: 1px solid #dadce0;
+        }
+
+        .header img {
+            width: 150px;
+            height: 54px;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #5f6368;
+            margin: 8px 0 0 0;
+        }
+
+        .content {
+            padding: 24px 0;
+        }
+
+        .tab-container {
+            margin-bottom: 24px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #dadce0;
+            margin-bottom: 16px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 16px;
+            text-align: center;
+            background: white;
+            border: 1px solid #dadce0;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 400;
+            color: #5f6368;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .tab-button.active {
+            border-bottom: 2px solid #4285f4;
+            color: #202124;
+            font-weight: 500;
+        }
+
+        .tab-button:hover:not(.active) {
+            background-color: #f8f9fa;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #dadce0;
+        }
+
+        .table th {
+            font-size: 13px;
+            font-weight: 400;
+            color: #5f6368;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            font-size: 14px;
+            color: #202124;
+        }
+
+        .table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        .status-success {
+            background-color: #e6f4ea;
+            color: #137333;
+        }
+
+        .status-error {
+            background-color: #fce8e6;
+            color: #d93025;
+        }
+
+        .info-box {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .info-box h3 {
+            font-size: 18px;
+            font-weight: 400;
+            color: #202124;
+            margin: 0 0 16px 0;
+        }
+
+        .info-box ul {
+            padding-left: 20px;
+            margin: 8px 0 0 0;
+        }
+
+        .info-box li {
+            font-size: 14px;
+            color: #5f6368;
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        .info-box code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'Google Sans', Roboto, monospace;
+            font-size: 13px;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #4285f4;
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: 400;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+            letter-spacing: 0.25px;
+            text-decoration: none;
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+        }
+
+        .btn:hover {
+            background-color: #3367d6;
+        }
+
+        .btn:disabled {
+            background-color: #dadce0;
+            cursor: default;
+        }
+
+        .btn-outline {
+            background-color: white;
+            color: #5f6368;
+            border: 1px solid #dadce0;
+        }
+
+        .btn-outline:hover {
+            background-color: #f8f9fa;
+        }
+
+        .messages {
+            margin: 0 0 16px 0;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .success {
+            background-color: #e6f4ea;
+            color: #137333;
+            border: 1px solid #b7e4cd;
+        }
+
+        .error {
+            background-color: #fce8e6;
+            color: #d93025;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background-color: #e8f0fe;
+            color: #1967d2;
+            border: 1px solid #d2e3fc;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 24px 0;
+            color: #5f6368;
+            font-size: 14px;
+            border-top: 1px solid #dadce0;
+            margin-top: 24px;
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_150x54dp.png" alt="Google">
+            <p>Admin Demo Panel</p>
+        </div>
+
+        <div class="content">
+            <% var flashTypes = Object.keys(messages); if (flashTypes.length > 0) { %>
+                <div class="messages">
+                    <% flashTypes.forEach(function(type) { %>
+                        <div class="message <%= type %>">
+                            <% messages[type].forEach(function(text) { %><%= text %><% }); %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="openTab('users')">Registered Users</button>
+                    <button class="tab-button" onclick="openTab('events')">Authentication Events</button>
+                    <button class="tab-button" onclick="openTab('info')">Technical Information</button>
+                </div>
+
+                <div id="users" class="tab-content active">
+                    <h2>Registered Users</h2>
+                    <% if (demoData.users.length > 0) { %>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Full name</th>
+                                    <th>Email</th>
+                                    <th>Registration date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% demoData.users.forEach(function(user) { %>
+                                    <tr>
+                                        <td><%= user.id %></td>
+                                        <td><%= user.name %></td>
+                                        <td><%= user.email %></td>
+                                        <td><em>Demo data - timestamps not stored</em></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    <% } else { %>
+                        <p>No users registered yet.</p>
+                    <% } %>
+                </div>
+
+                <div id="events" class="tab-content">
+                    <h2>Authentication Events</h2>
+                    <% if (demoData.events.length > 0) { %>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Event type</th>
+                                    <th>Email</th>
+                                    <th>Success</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% demoData.events.forEach(function(event) { %>
+                                    <tr>
+                                        <td><%= new Date(event.timestamp).toLocaleString() %></td>
+                                        <td>
+                                            <% if (event.type === 'registration') { %>
+                                                Registration
+                                            <% } else { %>
+                                                Login attempt
+                                            <% } %>
+                                        </td>
+                                        <td><%= event.email %></td>
+                                        <td>
+                                            <span class="status-badge <%= event.success ? 'status-success' : 'status-error' %>">
+                                                <%= event.success ? 'Success' : 'Failed' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% if (!event.success && event.type === 'login') { %>
+                                                Invalid credentials
+                                            <% } else if (event.type === 'registration') { %>
+                                                New account created
+                                            <% } else { %>
+                                                Successful login
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    <% } else { %>
+                        <p>No authentication events recorded yet.</p>
+                    <% } %>
+                </div>
+
+                <div id="info" class="tab-content">
+                    <h2>Technical Information for Cybersecurity Discussion</h2>
+
+                    <div class="info-box">
+                        <h3>What This Demo Shows:</h3>
+                        <ul>
+                            <li><strong>Password Storage:</strong> Passwords are hashed using bcrypt before storage (never stored in plaintext)</li>
+                            <li><strong>Session Management:</strong> User sessions are maintained using express-session with secure cookies</li>
+                            <li><strong>Input Validation:</strong> Basic validation prevents empty fields and password mismatch</li>
+                            <li><strong>Flash Messages:</strong> Temporary messages for user feedback</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box">
+                        <h3>Security Considerations for Discussion:</h3>
+                        <ul>
+                            <li><strong>Demo Admin Access:</strong> This admin panel is accessible via <code>?demo=true</code> parameter - NOT secure for production!</li>
+                            <li><strong>In-Memory Storage:</strong> User data is stored in memory only - resets when server restarts</li>
+                            <li><strong>No Rate Limiting:</strong> No protection against brute force attacks</li>
+                            <li><strong>No HTTPS:</strong> Running on HTTP only - passwords would be transmitted in plaintext</li>
+                            <li><strong>Basic Validation:</strong> Minimal input validation - no protection against SQL/XSS in this demo</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box">
+                        <h3>Typical HTTP Request Data That Could Be Logged:</h3>
+                        <pre>
+POST /login HTTP/1.1
+Host: localhost:3000
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 27
+
+email=user%40example.com&password=secret123
+
+Response:
+HTTP/1.1 302 Found
+Location: /login
+Set-Cookie: connect.sid=s%3A...; Path=/; HttpOnly
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <a href="/" class="btn-outline">Return to Home</a>
+        </div>
+
+        <div class="footer">
+            Google • © 2026
+        </div>
+    </div>
+
+    <script>
+        function openTab(tabName) {
+            // Hide all tab contents
+            var tabContents = document.getElementsByClassName('tab-content');
+            for (var i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+
+            // Deactivate all tab buttons
+            var tabButtons = document.getElementsByClassName('tab-button');
+            for (var i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove('active');
+            }
+
+            // Show the selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Activate the clicked button
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>

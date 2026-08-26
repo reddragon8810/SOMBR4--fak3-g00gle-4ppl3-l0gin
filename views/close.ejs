@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection closed</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #111111;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            color: #6e6e73;
+        }
+
+        .msg {
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            text-align: center;
+            padding: 0 20px;
+        }
+    </style>
+</head>
+<body>
+    <p class="msg" id="msg">Connection closed.</p>
+
+    <script>
+        // Try to close the window: allowed for windows opened by script;
+        // for a normal tab the browser may block it, so show a fallback.
+        try {
+            window.close();
+        } catch (e) { /* ignore */ }
+
+        // If the close was blocked, this timer still runs and the page is visible.
+        setTimeout(function () {
+            document.getElementById('msg').textContent = 'Done. You can close this window.';
+        }, 600);
+    </script>
+</body>
+</html>
