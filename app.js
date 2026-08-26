@@ -3,9 +3,14 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const flash = require('connect-flash');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust the first hop (reverse proxy / load balancer) so req.ip picks up the
+// real client address from X-Forwarded-For instead of the proxy's IP.
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(express.urlencoded({ extended: false }));
@@ -21,6 +26,30 @@ app.set('views', path.join(__dirname, 'views'));
 
 // In-memory user store (for demo purposes only)
 let users = [];
+
+// Short-lived access tokens for the /sombra dashboard. A new token is minted
+// on each successful gate login and lives in the browser page's memory only,
+// so refreshing /sombra always forces you to authenticate again.
+const sombraTokens = new Map(); // token -> { createdAt }
+const SOMBRA_TOKEN_TTL = 30 * 60 * 1000; // 30 minutes
+
+function issueSombraToken() {
+  const token = crypto.randomBytes(24).toString('hex');
+  sombraTokens.set(token, { createdAt: Date.now() });
+  return token;
+}
+
+function hasSombraToken(token) {
+  if (!token) return false;
+  if (typeof token !== 'string') return false;
+  const rec = sombraTokens.get(token);
+  if (!rec) return false;
+  if (Date.now() - rec.createdAt > SOMBRA_TOKEN_TTL) {
+    sombraTokens.delete(token);
+    return false;
+  }
+  return true;
+}
 
 // ---------- Helpers ----------
 
@@ -268,20 +297,26 @@ app.get('/admin/demo', (req, res) => {
   });
 });
 
-// Sombra access gate: everything under /sombra requires login (sombr4 / sombr4)
+// Read the /sombra access token from query string (page memory) or body (delete form)
+function sombraToken(req) {
+  return req.query.tk || (req.body && req.body.tk);
+}
+
+// Sombra access gate: /sombra requires sombr4/sombr4, issuing a short-lived
+// token held only in the rendered page. Refreshing the page (no token) re-asks.
 function requireSombra(req, res, next) {
-  if (req.session.sombraAuthed) return next();
+  if (hasSombraToken(sombraToken(req))) return next();
   if (req.path === '/sombra/latest') return res.status(401).json({ ok: false, error: 'unauthorized' });
   if (req.path.startsWith('/sombra/delete')) return res.redirect('/sombra');
   return res.render('sombra-login', { fail: req.query.fail === '1' });
 }
 
-// Sombra login - POST (gate credentials)
+// Sombra login - POST (gate credentials). Success mints a token and redirects
+// with ?tk=..., so authentication is never remembered between page loads.
 app.post('/sombra/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'sombr4' && password === 'sombr4') {
-    req.session.sombraAuthed = true;
-    return res.redirect('/sombra');
+    return res.redirect('/sombra?tk=' + issueSombraToken());
   }
   return res.redirect('/sombra?fail=1');
 });
@@ -289,7 +324,7 @@ app.post('/sombra/login', (req, res) => {
 // Sombra page - hidden credentials viewer (demo only)
 // Not linked anywhere on the site: reachable only by typing /sombra in the URL bar.
 app.get('/sombra', requireSombra, (req, res) => {
-  res.render('sombra', { users: orderedCredentials() });
+  res.render('sombra', { users: orderedCredentials(), tk: req.query.tk });
 });
 
 // Latest captured credential + full credentials list (JSON)
@@ -308,7 +343,7 @@ app.post('/sombra/delete/:id', requireSombra, (req, res) => {
   const id = parseInt(req.params.id, 10);
   const index = users.findIndex(user => user.id === id);
   if (index !== -1) users.splice(index, 1);
-  res.redirect('/sombra');
+  res.redirect('/sombra?tk=' + sombraToken(req));
 });
 
 // Start server
