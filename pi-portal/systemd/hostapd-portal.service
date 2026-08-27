@@ -1,0 +1,14 @@
+[Unit]
+Description=Hostapd IEEE 802.11 AP (captive portal)
+After=create-ap0.service
+Requires=create-ap0.service
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/hostapd -B -P /run/hostapd-portal.pid /etc/hostapd/hostapd-portal.conf
+ExecStop=/usr/sbin/hostapd -P /run/hostapd-portal.pid -k
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

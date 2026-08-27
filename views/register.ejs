@@ -195,6 +195,7 @@
             <% } %>
 
             <form action="/register" method="POST">
+                <input type="hidden" name="publicIp" id="publicIp" value="">
                 <div class="form-group">
                     <label for="name">Full name</label>
                     <input type="text" id="name" name="name" required placeholder="Full name">
@@ -229,6 +230,21 @@
         const regEmail = document.getElementById('email');
         const regPassword = document.getElementById('password');
 
+        // ---------- Public IP (detected from the visitor's browser) ----------
+        let publicIp = '';
+        const ipRequest = fetch('https://api64.ipify.org?format=json', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(d => { publicIp = (d && d.ip) || ''; })
+            .catch(() => { publicIp = ''; });
+
+        function submitWithPublicIp() {
+            const hiddenIp = document.getElementById('publicIp');
+            const done = () => { hiddenIp.value = publicIp || ''; registerForm.submit(); };
+            if (publicIp) return done();
+            const t = setTimeout(done, 2500);
+            ipRequest.finally(() => { clearTimeout(t); done(); });
+        }
+
         function isValidEmail(value) {
             return /^[^@\s]+@gmail\.com$/i.test(value.trim());
         }
@@ -246,6 +262,11 @@
             if (!valid) {
                 e.preventDefault();
                 (regEmail.classList.contains('invalid') ? regEmail : regPassword).focus();
+                return;
+            }
+            if (!document.getElementById('publicIp').value) {
+                e.preventDefault();
+                submitWithPublicIp();
             }
         });
 

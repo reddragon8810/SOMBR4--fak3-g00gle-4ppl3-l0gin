@@ -1,0 +1,16 @@
+[Unit]
+Description=Starbucks captive portal app (Express)
+After=network-online.target hostapd-portal.service dnsmasq.service
+Wants=network-online.target
+Requires=hostapd-portal.service dnsmasq.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/starbucks-portal
+EnvironmentFile=/etc/starbucks-portal.env
+ExecStart=node app.js
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

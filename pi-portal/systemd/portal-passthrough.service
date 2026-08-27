@@ -1,0 +1,6 @@
+[Unit]
+Description=Check the Pi STA uplink against the router captive portal
+
+[Service]
+Type=oneshot
+ExecStart=/opt/starbucks-portal/pi-portal/scripts/portal-check.sh

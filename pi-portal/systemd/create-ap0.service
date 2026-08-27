@@ -1,0 +1,13 @@
+[Unit]
+Description=Create the ap0 virtual AP interface on wlan0
+After=sys-subsystem-net-devices-wlan0.device wpa_supplicant@wlan0.service
+Before=hostapd-portal.service dnsmasq.service starbucks-portal.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/usr/sbin/iw dev wlan0 interface add ap0 type __ap
+ExecStart=/sbin/ip link set ap0 up
+
+[Install]
+WantedBy=multi-user.target
