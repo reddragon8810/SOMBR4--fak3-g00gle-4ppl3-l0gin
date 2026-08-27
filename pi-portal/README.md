@@ -207,6 +207,15 @@ cat /tmp/portal-blocked 2>/dev/null          # presente = router ci tiene blocca
 - troppi client sulla stessa radio (10%)
 - altro (5%)
 
+**Dopo il deploy su Render (o altro host) il sito reindirizza a 127.0.0.1
+o ERR_CONNECTION_REFUSED**
+- codice vecchio senza il gate `PORTAL_ENABLED` (90%) — il fallback
+  captive gira solo se `PORTAL_ENABLED=1`; ri-push e ridistribuisci
+  l'ultimo commit: su Render non va mai impostato
+- `PORTAL_ENABLED=1` presente per errore anche su Render (10%) — rimuovilo
+  dalle variabili d'ambiente (il fallback è riservato al Pi, dove
+  `setup.sh` lo scrive in `/etc/starbucks-portal.env`)
+
 ## Nota etica e legale
 
 Progetto **didattico**: cattura di credenziali senza consenso è reato in quasi

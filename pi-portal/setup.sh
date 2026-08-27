@@ -201,6 +201,7 @@ netfilter-persistent save >/dev/null 2>&1 || iptables-save > /etc/iptables/rules
 log "Installazione unit dell'app (porta 80, PORTAL_GRANT=1)..."
 cat > /etc/starbucks-portal.env <<ENVEOF
 PORT=80
+PORTAL_ENABLED=1
 PORTAL_GRANT=1
 PORTAL_HOSTS=$PORTAL_IP
 PORTAL_REDIRECT_BASE=http://$PORTAL_IP

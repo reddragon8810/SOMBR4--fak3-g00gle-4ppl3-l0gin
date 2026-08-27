@@ -44,7 +44,15 @@ function portalBase(req) {
   return 'http://' + normalizeIp(req.socket.localAddress || '127.0.0.1');
 }
 
+// The whole fallback runs ONLY in Pi mode: PORTAL_ENABLED=1 is set by the
+// Pi's systemd unit (pi-portal/setup.sh writes it into /etc/starbucks-portal.env).
+// Without this gate, any deployment behind a real hostname (Render, VPS, ...)
+// would treat every request as an "unknown host" and redirect it to a local
+// socket address (127.0.0.1), breaking the site.
+const PORTAL_ENABLED = process.env.PORTAL_ENABLED === '1';
+
 app.use((req, res, next) => {
+  if (!PORTAL_ENABLED) return next();
   const host = String(req.hostname || '').toLowerCase();
   if (!host || KNOWN_HOSTS.has(host) || EXTRA_HOSTS.has(host) || net.isIP(host) > 0) return next();
   if (grantedIps.has(normalizeIp(req.ip))) {
