@@ -201,6 +201,13 @@ cat /tmp/portal-blocked 2>/dev/null          # presente = router ci tiene blocca
 - browser su host conosciuto che non passa dal portale (15%)
 - altro (10%)
 
+**Su `/sombra` i campi DEV/BROWSER/MODEL sono vuoti ("?" o "—")**
+- righe di `creds.txt` scritte prima dell'aggiornamento (70%) — non
+  contengono `browser`/`model`; le nuove catture li riempiono, oppure cancella
+  le righe vecchie e riavvia il servizio
+- app non aggiornata o non riavviata (20%) — `systemctl restart starbucks-portal`
+- altro (10%)
+
 **Prestazioni pessime / rete lenta**
 - canale 2.4 GHz congestionato (60%) — canale 1/6/11 meno affollato
 - distanza/interferenze (25%)

