@@ -3,4 +3,5 @@ Description=Check the Pi STA uplink against the router captive portal
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/etc/starbucks-portal.env
 ExecStart=/opt/starbucks-portal/pi-portal/scripts/portal-check.sh

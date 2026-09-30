@@ -1,8 +1,8 @@
 [Unit]
 Description=Starbucks captive portal app (Express)
-After=network-online.target hostapd-portal.service dnsmasq.service
+After=network-online.target hostapd-portal.service dnsmasq-portal.service
 Wants=network-online.target
-Requires=hostapd-portal.service dnsmasq.service
+Requires=hostapd-portal.service dnsmasq-portal.service
 
 [Service]
 Type=simple

@@ -1,0 +1,16 @@
+[Unit]
+Description=Pick the starbucks mode at boot (cable = casa/Pi-hole, otherwise campo/portale)
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/starbucks-mode auto
+# anche se una modalita' non parte, il boot non deve bloccarsi
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target

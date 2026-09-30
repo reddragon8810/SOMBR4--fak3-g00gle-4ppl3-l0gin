@@ -5,6 +5,11 @@ telefono, Google/Apple), il Pi resta **senza Internet** finché non completi
 quel login. Niente auto-accept: serve un login manuale. Questa guida copre
 tutti i metodi, dal Pi o da un browser vero.
 
+> **Con il TUO hotspot WPA2 questo file non serve.** Accendi il tuo hotspot,
+lancia `sudo starbucks-mode campo` e il Pi ha Internet senza portali di mezzo.
+Questa guida vale solo se ti agganci alla WiFi libera di altri che ha un suo
+portale. Il flusso normale della demo e' spiegato in [README.md](README.md).
+
 ## 1. Capire se serve
 
 Sul Pi (SSH):
@@ -128,10 +133,10 @@ dopo il login, il telefono non riceve il 204 che chiude il popup del portale.
    rsync -av --exclude node_modules --exclude .git ./ pi@<ip-del-pi>:/opt/starbucks-portal/
    ```
 
-4. Riavvia il servizio:
+4. Riavvia in modalita' campo:
 
    ```bash
-   ssh pi@<ip-del-pi> "sudo systemctl restart starbucks-portal"
+   ssh pi@<ip-del-pi> "sudo starbucks-mode campo"
    ```
 
 5. Verifica il comportamento captive: la probe deve ricevere `302` verso il
@@ -148,7 +153,8 @@ scrive `PORTAL_ENABLED=1` in `/etc/starbucks-portal.env` da solo.
 
 ## 7. Comandi per chi fa la demo (operatore)
 
-Il laptop dell'operatore si collega alla rete AP del Pi
+Prima di tutto, sul Pi: `sudo starbucks-mode campo` (accende il portale e
+spegne Pi-hole). Poi il laptop dell'operatore si collega alla rete AP del Pi
 (`Starbucks_Free_WiFi`, IP del Pi: `10.3.0.1`).
 
 ### Windows (PowerShell o cmd)

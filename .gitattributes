@@ -1,0 +1,7 @@
+# Gli script girano su Linux (il Raspberry Pi) e in un container: i fine-riga
+# DEVONO restare LF, altrimenti bash si lamenta ("bad interpreter: ...^M") e
+# systemd non legge i .service. Senza questo file, su Windows con
+# core.autocrlf=true Git riscrive CRLF nel working copy.
+* text=auto eol=lf
+
+*.png binary

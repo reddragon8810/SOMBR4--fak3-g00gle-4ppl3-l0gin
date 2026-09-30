@@ -1,13 +1,17 @@
 [Unit]
-Description=Create the ap0 virtual AP interface on wlan0
-After=sys-subsystem-net-devices-wlan0.device wpa_supplicant@wlan0.service
-Before=hostapd-portal.service dnsmasq.service starbucks-portal.service
+Description=Create the ap0 virtual AP interface on wlan0 and give it its static IP
+After=sys-subsystem-net-devices-wlan0.device
+Before=hostapd-portal.service dnsmasq-portal.service starbucks-portal.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+EnvironmentFile=-/etc/starbucks-portal.env
 ExecStartPre=-/usr/sbin/iw dev wlan0 interface add ap0 type __ap
 ExecStart=/sbin/ip link set ap0 up
+# Senza indirizzo su ap0 ne' dnsmasq (bind-interfaces) ne' il NAT funzionano.
+# L'IP e' configurabile (PORTAL_IP_CIDR in /etc/starbucks-portal.env).
+ExecStartPost=/bin/sh -c 'ip address replace "${PORTAL_IP_CIDR:-10.3.0.1/24}" dev ap0'
 
 [Install]
 WantedBy=multi-user.target

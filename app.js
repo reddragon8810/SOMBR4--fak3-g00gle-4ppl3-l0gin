@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const net = require('net');
 const fs = require('fs');
 const { execFile } = require('child_process');
+const { grantRules } = require('./lib/gating');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,11 @@ const EXTRA_HOSTS = new Set(
   String(process.env.PORTAL_HOSTS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
 );
 const grantedIps = new Set(); // client IPs unlocked by grantNetwork (Pi mode only)
+
+// Nomi mostrati nella schermata finale: la rete del Pi ("Rete 2") e la rete
+// verso cui il client viene sbloccato ("Rete 1", l'hotspot dell'uplink).
+const PORTAL_SSID = process.env.PORTAL_SSID || 'Starbucks_Free_WiFi';
+const PORTAL_UPSTREAM_SSID = process.env.PORTAL_UPSTREAM_SSID || 'Rete 1';
 
 function portalBase(req) {
   const env = process.env.PORTAL_REDIRECT_BASE;
@@ -318,15 +324,19 @@ function grantNetwork(req) {
   if (!clientIp || clientIp === 'unknown' || !net.isIP(clientIp)) return;
   grantedIps.add(clientIp);
   const chain = process.env.PORTAL_CHAIN || 'PORTAL_CLIENTS';
+  const dnsChain = process.env.PORTAL_DNS_CHAIN || 'PORTAL_DNS';
   const run = args => new Promise(resolve => {
     execFile('iptables', args, err => {
-      if (err) console.error('grantNetwork (' + chain + '):', err.message);
+      if (err) console.error('grantNetwork (' + args.join(' ') + '):', err.message);
       resolve();
     });
   });
-  // remove any block, then allow — the chain ends in DROP
-  run(['-D', chain, '-s', clientIp, '-j', 'DROP'])
-    .then(() => run(['-I', chain, '-s', clientIp, '-j', 'ACCEPT']))
+  // Le regole stanno in lib/gating.js: un solo posto che i test controllano.
+  // (1) firewall: togli il blocco e consenti il traffico (la catena finisce in DROP);
+  // (2) DNS: la RETURN, inserita in testa, precede il REDIRECT e fa tornare
+  //     questo client a risolvere davvero -> esce su "Rete 1".
+  grantRules(clientIp, chain, dnsChain)
+    .reduce((p, args) => p.then(() => run(args)), Promise.resolve())
     .then(() => console.log('grantNetwork: unlocked ' + clientIp));
 }
 
@@ -434,7 +444,29 @@ app.post('/apple-login', (req, res) => handleLogin(req, res, 'apple'));
 
 // Close page - shown after a successful login (tries to close the window)
 app.get('/close', (req, res) => {
-  res.render('close');
+  res.render('close', { ssid: PORTAL_SSID, upstream: PORTAL_UPSTREAM_SSID });
+});
+
+// Real unlock status for the phone looking at the final page. The page polls
+// this before writing "connected to Rete 1", so the message is never a lie.
+app.get('/grant-status', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const ip = normalizeIp(req.ip);
+  const grantEnabled = process.env.PORTAL_GRANT === '1';
+  let uplinkBlocked = false;
+  let portalUrl = '';
+  try { uplinkBlocked = fs.existsSync('/tmp/portal-blocked'); } catch (e) { /* ignore */ }
+  try { portalUrl = fs.readFileSync('/tmp/portal-url', 'utf8').trim(); } catch (e) { /* ignore */ }
+  res.json({
+    ok: true,
+    ip,
+    grantEnabled,
+    granted: grantEnabled ? grantedIps.has(ip) : true,
+    uplinkOnline: !uplinkBlocked,
+    portalUrl,
+    ssid: PORTAL_SSID,
+    upstream: PORTAL_UPSTREAM_SSID
+  });
 });
 
 // Logout

@@ -1,0 +1,19 @@
+[Unit]
+Description=dnsmasq DNS+DHCP for the captive portal AP (ap0 only)
+# Config dedicata (/etc/dnsmasq-portal.conf), FUORI da /etc/dnsmasq.d:
+# cosi' Pi-hole (v5 legge quella cartella) non eredita mai il dirottamento DNS.
+After=create-ap0.service
+Requires=create-ap0.service
+Before=starbucks-portal.service
+ConditionPathExists=/etc/dnsmasq-portal.conf
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/dnsmasq -C /etc/dnsmasq-portal.conf -k
+Restart=on-failure
+RestartSec=3
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Install]
+WantedBy=multi-user.target
